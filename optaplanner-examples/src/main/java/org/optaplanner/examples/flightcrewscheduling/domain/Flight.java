@@ -30,6 +30,8 @@ public class Flight extends AbstractPersistable {
     private LocalDateTime departureUTCDateTime;
     private Airport arrivalAirport;
     private LocalDateTime arrivalUTCDateTime;
+    private String aircraftRegistration;    
+    private String aircraftType;
 
     public Flight() {
     }
@@ -105,6 +107,22 @@ public class Flight extends AbstractPersistable {
 
     public void setArrivalUTCDateTime(LocalDateTime arrivalUTCDateTime) {
         this.arrivalUTCDateTime = arrivalUTCDateTime;
+    }
+
+    public String getAircraftRegistration() {
+        return aircraftRegistration;
+    }
+
+    public void setAircraftRegistration(String aircraftRegistration) {
+        this.aircraftRegistration = aircraftRegistration;
+    }
+
+    public String getAircraftType() {
+        return aircraftType;
+    }
+
+    public void setAircraftType(String aircraftType) {
+        this.aircraftType = aircraftType;
     }
 
 }

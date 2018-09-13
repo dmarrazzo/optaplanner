@@ -264,6 +264,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             readHeaderCell("Departure UTC date time");
             readHeaderCell("Arrival airport code");
             readHeaderCell("Arrival UTC date time");
+            readHeaderCell("Aircraft Registration");
+            readHeaderCell("Aircraft type");
             readHeaderCell("Employee skill requirements");
             readHeaderCell("Employee assignments");
             List<Flight> flightList = new ArrayList<>(currentSheet.getLastRowNum() - 1);
@@ -297,6 +299,9 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 flight.setArrivalAirport(arrivalAirport);
                 flight.setArrivalUTCDateTime(LocalDateTime.parse(nextStringCell().getStringCellValue(), DATE_TIME_FORMATTER));
 
+                flight.setAircraftRegistration(nextStringCell().getStringCellValue());
+                flight.setAircraftType(nextStringCell().getStringCellValue());
+                
                 String[] skillNames = nextStringCell().getStringCellValue().split(", ");
                 String[] employeeNames = nextStringCell().getStringCellValue().split(", ");
                 for (int i = 0; i < skillNames.length; i++) {
