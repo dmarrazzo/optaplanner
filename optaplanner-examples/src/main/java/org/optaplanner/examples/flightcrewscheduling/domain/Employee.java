@@ -32,7 +32,10 @@ public class Employee extends AbstractPersistable {
     private Airport homeAirport;
 
     private Set<Skill> skillSet;
+    @Deprecated
     private Set<LocalDate> unavailableDaySet;
+    private Set<DateTimeInterval> unavailableIntervalSet;
+    private Set<DateTimeInterval> preAssignedDutySet;
 
     /**
      * Sorted by {@link FlightAssignment#DATE_TIME_COMPARATOR}.
@@ -154,6 +157,22 @@ public class Employee extends AbstractPersistable {
 
     public void setFlightAssignmentSet(SortedSet<FlightAssignment> flightAssignmentSet) {
         this.flightAssignmentSet = flightAssignmentSet;
+    }
+
+    public Set<DateTimeInterval> getUnavailableIntervalSet() {
+        return unavailableIntervalSet;
+    }
+
+    public void setUnavailableIntervalSet(Set<DateTimeInterval> unavailableIntervalSet) {
+        this.unavailableIntervalSet = unavailableIntervalSet;
+    }
+
+    public Set<DateTimeInterval> getPreAssignedDutySet() {
+        return preAssignedDutySet;
+    }
+
+    public void setPreAssignedDutySet(Set<DateTimeInterval> preAssignedDutySet) {
+        this.preAssignedDutySet = preAssignedDutySet;
     }
 
 }

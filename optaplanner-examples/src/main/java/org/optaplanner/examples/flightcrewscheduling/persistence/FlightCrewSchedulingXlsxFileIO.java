@@ -29,6 +29,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -69,12 +70,13 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             XSSFWorkbook workbook = new XSSFWorkbook(in);
             return new FlightCrewSchedulingXlsxReader(workbook).read();
         } catch (IOException | RuntimeException e) {
-            throw new IllegalStateException("Failed reading inputSolutionFile ("
-                    + inputSolutionFile + ").", e);
+            throw new IllegalStateException(
+                    "Failed reading inputSolutionFile (" + inputSolutionFile + ").", e);
         }
     }
 
-    private static class FlightCrewSchedulingXlsxReader extends AbstractXlsxReader<FlightCrewSolution> {
+    private static class FlightCrewSchedulingXlsxReader
+            extends AbstractXlsxReader<FlightCrewSolution> {
 
         private Map<String, Skill> skillMap;
         private Map<String, Employee> nameToEmployeeMap;
@@ -111,17 +113,11 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             readHeaderCell("Description");
             FlightCrewParametrization parametrization = new FlightCrewParametrization();
             parametrization.setId(0L);
-            readLongConstraintLine(LOAD_BALANCE_FLIGHT_DURATION_TOTAL_PER_EMPLOYEE,
-                    parametrization::setLoadBalanceFlightDurationTotalPerEmployee,
-                    "Soft penalty per 0.001 minute difference with the average flight duration total per employee.");
-            readIntConstraintLine(REQUIRED_SKILL, null,
-                    "Hard penalty per missing required skill for a flight assignment");
-            readIntConstraintLine(FLIGHT_CONFLICT, null,
-                    "Hard penalty per 2 flights of an employee that directly overlap");
-            readIntConstraintLine(TRANSFER_BETWEEN_TWO_FLIGHTS, null,
-                    "Hard penalty per 2 sequential flights of an employee with no viable transfer from the arrival airport to the departure airport");
-            readIntConstraintLine(EMPLOYEE_UNAVAILABILITY, null,
-                    "Hard penalty per flight assignment to an employee that is unavailable");
+            readLongConstraintLine(LOAD_BALANCE_FLIGHT_DURATION_TOTAL_PER_EMPLOYEE, parametrization::setLoadBalanceFlightDurationTotalPerEmployee, "Soft penalty per 0.001 minute difference with the average flight duration total per employee.");
+            readIntConstraintLine(REQUIRED_SKILL, null, "Hard penalty per missing required skill for a flight assignment");
+            readIntConstraintLine(FLIGHT_CONFLICT, null, "Hard penalty per 2 flights of an employee that directly overlap");
+            readIntConstraintLine(TRANSFER_BETWEEN_TWO_FLIGHTS, null, "Hard penalty per 2 sequential flights of an employee with no viable transfer from the arrival airport to the departure airport");
+            readIntConstraintLine(EMPLOYEE_UNAVAILABILITY, null, "Hard penalty per flight assignment to an employee that is unavailable");
             solution.setParametrization(parametrization);
         }
 
@@ -145,7 +141,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         private void readAirportList() {
             nextSheet("Airports");
             nextRow(false);
-            //City  Country IATA    Latitude    Longitude   Altitude    Timezone    DST
+            // City Country IATA Latitude Longitude Altitude Timezone DST
             readHeaderCell("City");
             readHeaderCell("Country");
             readHeaderCell("IATA");
@@ -154,7 +150,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             readHeaderCell("Altitude");
             readHeaderCell("Timezone");
             readHeaderCell("DST");
-            
+
             List<Airport> airportList = new ArrayList<>(currentSheet.getLastRowNum() - 1);
             airportMap = new HashMap<>(currentSheet.getLastRowNum() - 1);
             long id = 0L;
@@ -184,94 +180,114 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             // prepare destination airport list
             String destinationCode;
             List<String> destinationList = new ArrayList<>(100);
-            while( (destinationCode = nextStringCell().getStringCellValue()) != null && !destinationCode.isEmpty()) {
+            while ((destinationCode = nextStringCell().getStringCellValue()) != null
+                    && !destinationCode.isEmpty()) {
                 destinationList.add(destinationCode);
             }
-            
-            // each row is a taxi departing location            
+
+            // each row is a taxi departing location
             while (nextRow()) {
                 String departingCode = nextStringCell().getStringCellValue();
                 for (String destination : destinationList) {
                     Airport destinationAirport = airportMap.get(destination);
                     XSSFCell taxiTimeCell = nextNumericCellOrBlank();
                     if (taxiTimeCell != null) {
-                        if (airportMap.get(departingCode)==null)
+                        if (airportMap.get(departingCode) == null)
                             System.out.println(departingCode);
-                        Map<Airport, Long> taxiTimeInMinutesMap = airportMap.get(departingCode).getTaxiTimeInMinutesMap();
+                        Map<Airport, Long> taxiTimeInMinutesMap = airportMap.get(departingCode)
+                                                                            .getTaxiTimeInMinutesMap();
                         taxiTimeInMinutesMap.put(destinationAirport, (long) taxiTimeCell.getNumericCellValue());
                     }
                 }
-                
+
             }
         }
 
         private void readEmployeeList() {
-            nextSheet("Employees");
+            List<Employee> employeeList = new ArrayList<>();
+            nameToEmployeeMap = new HashMap<>();
+
+            // CP Capitans ------
+            nextSheet("CP");
             nextRow(false);
-            readHeaderCell("");
-            readHeaderCell("");
-            readHeaderCell("");
-            readHeaderCell("Unavailability");
+            readHeaderCell("unique ID Crewmember");
             nextRow(false);
-            readHeaderCell("Name");
-            readHeaderCell("Home airport");
-            readHeaderCell("Skills");
-            LocalDate firstDate = solution.getScheduleFirstUTCDate();
-            LocalDate lastDate = solution.getScheduleLastUTCDate();
-            for (LocalDate date = firstDate; date.compareTo(lastDate) <= 0; date = date.plusDays(1)) {
-                readHeaderCell(DAY_FORMATTER.format(date));
-            }
-            List<Employee> employeeList = new ArrayList<>(currentSheet.getLastRowNum() - 2);
-            nameToEmployeeMap = new HashMap<>(currentSheet.getLastRowNum() - 2);
+
             long id = 0L;
             while (nextRow()) {
-                Employee employee = new Employee();
-                employee.setId(id++);
-                employee.setName(nextStringCell().getStringCellValue());
-                if (!VALID_NAME_PATTERN.matcher(employee.getName()).matches()) {
-                    throw new IllegalStateException(currentPosition() + ": The employee name (" + employee.getName()
-                            + ") must match to the regular expression (" + VALID_NAME_PATTERN + ").");
-                }
+                if (addEmployee(employeeList,"CP", id))
+                    id++;
+            }
+            // FO First Officer ------
+            nextSheet("FO");
+            nextRow(false);
+            readHeaderCell("unique ID Crewmember");
+            nextRow(false);
+
+            while (nextRow()) {
+                if (addEmployee(employeeList, "FO", id))
+                    id++;
+            }
+
+            solution.setEmployeeList(employeeList);
+        }
+
+        /**
+         * 
+         * @param employeeList
+         * @param skill 
+         * @param id keep track of new instances of Employee added
+         * @return true if new employee added
+         */
+        private boolean addEmployee(List<Employee> employeeList, String skill, long id) {
+            String employeeName = nextStringCell().getStringCellValue();
+            Employee employee = nameToEmployeeMap.get(employeeName);
+            boolean newEmp = false;
+            if (employee == null) {
+                newEmp = true;
+                employee = new Employee();
+                employee.setId(id);
+                employee.setName(employeeName);
+                HashSet<Skill> skillSet = new HashSet<>();
+                skillSet.add(skillMap.get(skill));
+                employee.setSkillSet(skillSet);
+                employee.setFlightAssignmentSet(new TreeSet<>(
+                        FlightAssignment.DATE_TIME_COMPARATOR));
+                nameToEmployeeMap.put(employee.getName(), employee);
+                employeeList.add(employee);
+                //TODO remove following
+                Set<LocalDate> unavailableDaySet = new LinkedHashSet<>();
+                employee.setUnavailableDaySet(unavailableDaySet);
+                
+                // TODO aircraft type qualification
+                nextCell();
+                // Home base
                 String homeAirportCode = nextStringCell().getStringCellValue();
                 Airport homeAirport = airportMap.get(homeAirportCode);
                 if (homeAirport == null) {
-                    throw new IllegalStateException(currentPosition()
-                            + ": The employee (" + employee.getName()
-                            + ")'s homeAirport (" + homeAirportCode
+                    throw new IllegalStateException(currentPosition() + ": The employee ("
+                            + employee.getName() + ")'s homeAirport (" + homeAirportCode
                             + ") does not exist in the airports (" + airportMap.keySet()
                             + ") of the other sheet (Airports).");
                 }
                 employee.setHomeAirport(homeAirport);
-                String[] skillNames = nextStringCell().getStringCellValue().split(", ");
-                Set<Skill> skillSet = new LinkedHashSet<>(skillNames.length);
-                for (String skillName : skillNames) {
-                    Skill skill = skillMap.get(skillName);
-                    if (skill == null) {
-                        throw new IllegalStateException(currentPosition()
-                                + ": The employee (" + employee + ")'s skill (" + skillName
-                                + ") does not exist in the skills (" + skillMap.keySet()
-                                + ") of the other sheet (Skills).");
-                    }
-                    skillSet.add(skill);
-                }
-                employee.setSkillSet(skillSet);
-                Set<LocalDate> unavailableDaySet = new LinkedHashSet<>();
-                for (LocalDate date = firstDate; date.compareTo(lastDate) <= 0; date = date.plusDays(1)) {
-                    XSSFCell cell = nextStringCell();
-                    if (Objects.equals(extractColor(cell, UNAVAILABLE_COLOR), UNAVAILABLE_COLOR)) {
-                        unavailableDaySet.add(date);
-                    }
-                    if (!cell.getStringCellValue().isEmpty()) {
-                        throw new IllegalStateException(currentPosition() + ": The cell (" + cell.getStringCellValue()
-                                + ") should be empty.");
-                    }
-                }
-                employee.setUnavailableDaySet(unavailableDaySet);
-                employee.setFlightAssignmentSet(new TreeSet<>(FlightAssignment.DATE_TIME_COMPARATOR));
-                nameToEmployeeMap.put(employee.getName(), employee);
-                employeeList.add(employee);
+                // TODO Special qualification
+                nextCell();
+            } else {
+                // skip repeated information
+                // aircraft type qualification
+                nextCell();
+                // Home base
+                nextCell();
+                // Special qualification
+                nextCell();                    
             }
-            solution.setEmployeeList(employeeList);
+            // Duty date
+            String dutyDate = nextStringCell().getStringCellValue();
+            // Duty code
+            String dutyCode = nextStringCell().getStringCellValue();
+            
+            return newEmp;
         }
 
         private void readFlightListAndFlightAssignmentList() {
@@ -287,7 +303,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             readHeaderCell("Employee skill requirements");
             readHeaderCell("Employee assignments");
             List<Flight> flightList = new ArrayList<>(currentSheet.getLastRowNum() - 1);
-            List<FlightAssignment> flightAssignmentList = new ArrayList<>((currentSheet.getLastRowNum() - 1) * 5);
+            List<FlightAssignment> flightAssignmentList = new ArrayList<>(
+                    (currentSheet.getLastRowNum() - 1) * 5);
             long id = 0L;
             long flightAssignmentId = 0L;
             while (nextRow()) {
@@ -297,20 +314,18 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 String departureAirportCode = nextStringCell().getStringCellValue();
                 Airport departureAirport = airportMap.get(departureAirportCode);
                 if (departureAirport == null) {
-                    throw new IllegalStateException(currentPosition()
-                            + ": The flight (" + flight.getFlightNumber()
-                            + ")'s departureAirport (" + departureAirportCode
-                            + ") does not exist in the airports (" + airportMap.keySet()
-                            + ") of the other sheet (Airports).");
+                    throw new IllegalStateException(currentPosition() + ": The flight ("
+                            + flight.getFlightNumber() + ")'s departureAirport ("
+                            + departureAirportCode + ") does not exist in the airports ("
+                            + airportMap.keySet() + ") of the other sheet (Airports).");
                 }
                 flight.setDepartureAirport(departureAirport);
                 flight.setDepartureUTCDateTime(LocalDateTime.parse(nextStringCell().getStringCellValue(), DATE_TIME_FORMATTER));
                 String arrivalAirportCode = nextStringCell().getStringCellValue();
                 Airport arrivalAirport = airportMap.get(arrivalAirportCode);
                 if (arrivalAirport == null) {
-                    throw new IllegalStateException(currentPosition()
-                            + ": The flight (" + flight.getFlightNumber()
-                            + ")'s arrivalAirport (" + arrivalAirportCode
+                    throw new IllegalStateException(currentPosition() + ": The flight ("
+                            + flight.getFlightNumber() + ")'s arrivalAirport (" + arrivalAirportCode
                             + ") does not exist in the airports (" + airportMap.keySet()
                             + ") of the other sheet (Airports).");
                 }
@@ -319,7 +334,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
                 flight.setAircraftRegistration(nextStringCell().getStringCellValue());
                 flight.setAircraftType(nextStringCell().getStringCellValue());
-                
+
                 String[] skillNames = nextStringCell().getStringCellValue().split(", ");
                 String[] employeeNames = nextStringCell().getStringCellValue().split(", ");
                 for (int i = 0; i < skillNames.length; i++) {
@@ -329,9 +344,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     flightAssignment.setIndexInFlight(i);
                     Skill requiredSkill = skillMap.get(skillNames[i]);
                     if (requiredSkill == null) {
-                        throw new IllegalStateException(currentPosition()
-                                + ": The flight (" + flight.getFlightNumber()
-                                + ")'s requiredSkill (" + requiredSkill
+                        throw new IllegalStateException(currentPosition() + ": The flight ("
+                                + flight.getFlightNumber() + ")'s requiredSkill (" + requiredSkill
                                 + ") does not exist in the skills (" + skillMap.keySet()
                                 + ") of the other sheet (Skills).");
                     }
@@ -339,12 +353,13 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     if (employeeNames.length > i && !employeeNames[i].isEmpty()) {
                         Employee employee = nameToEmployeeMap.get(employeeNames[i]);
                         if (employee == null) {
-                            throw new IllegalStateException(currentPosition()
-                                    + ": The flight (" + flight.getFlightNumber()
-                                    
-                                    + ")'s employeeAssignment's name (" + employeeNames[i]
-                                    + ") does not exist in the employees (" + nameToEmployeeMap.keySet()
-                                    + ") of the other sheet (Employees).");
+                            throw new IllegalStateException(
+                                    currentPosition() + ": The flight (" + flight.getFlightNumber()
+
+                                            + ")'s employeeAssignment's name (" + employeeNames[i]
+                                            + ") does not exist in the employees ("
+                                            + nameToEmployeeMap.keySet()
+                                            + ") of the other sheet (Employees).");
                         }
                         flightAssignment.setEmployee(employee);
                     }
@@ -358,7 +373,6 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
     }
 
-
     @Override
     public void write(FlightCrewSolution solution, File outputSolutionFile) {
         try (FileOutputStream out = new FileOutputStream(outputSolutionFile)) {
@@ -370,7 +384,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         }
     }
 
-    private static class FlightCrewSchedulingXlsxWriter extends AbstractXlsxWriter<FlightCrewSolution> {
+    private static class FlightCrewSchedulingXlsxWriter
+            extends AbstractXlsxWriter<FlightCrewSolution> {
 
         public FlightCrewSchedulingXlsxWriter(FlightCrewSolution solution) {
             super(solution, FlightCrewSchedulingApp.SOLVER_CONFIG);
@@ -405,18 +420,12 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             nextHeaderCell("Description");
             FlightCrewParametrization parametrization = solution.getParametrization();
 
-            writeLongConstraintLine(LOAD_BALANCE_FLIGHT_DURATION_TOTAL_PER_EMPLOYEE,
-                    parametrization::getLoadBalanceFlightDurationTotalPerEmployee,
-                    "Soft penalty per 0.001 minute difference with the average flight duration total per employee.");
+            writeLongConstraintLine(LOAD_BALANCE_FLIGHT_DURATION_TOTAL_PER_EMPLOYEE, parametrization::getLoadBalanceFlightDurationTotalPerEmployee, "Soft penalty per 0.001 minute difference with the average flight duration total per employee.");
             nextRow();
-            writeIntConstraintLine(REQUIRED_SKILL, null,
-                    "Hard penalty per missing required skill for a flight assignment");
-            writeIntConstraintLine(FLIGHT_CONFLICT, null,
-                    "Hard penalty per 2 flights of an employee that directly overlap");
-            writeIntConstraintLine(TRANSFER_BETWEEN_TWO_FLIGHTS, null,
-                    "Hard penalty per 2 sequential flights of an employee with no viable transfer from the arrival airport to the departure airport");
-            writeIntConstraintLine(EMPLOYEE_UNAVAILABILITY, null,
-                    "Hard penalty per flight assignment to an employee that is unavailable");
+            writeIntConstraintLine(REQUIRED_SKILL, null, "Hard penalty per missing required skill for a flight assignment");
+            writeIntConstraintLine(FLIGHT_CONFLICT, null, "Hard penalty per 2 flights of an employee that directly overlap");
+            writeIntConstraintLine(TRANSFER_BETWEEN_TWO_FLIGHTS, null, "Hard penalty per 2 sequential flights of an employee with no viable transfer from the arrival airport to the departure airport");
+            writeIntConstraintLine(EMPLOYEE_UNAVAILABILITY, null, "Hard penalty per flight assignment to an employee that is unavailable");
             autoSizeColumnsWithHeader();
         }
 
@@ -495,10 +504,12 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 nextRow();
                 nextCell().setCellValue(employee.getName());
                 nextCell().setCellValue(employee.getHomeAirport().getCode());
-                nextCell().setCellValue(String.join(", ", employee.getSkillSet().stream().map(Skill::getName).collect(toList())));
+                nextCell().setCellValue(String.join(", ", employee.getSkillSet().stream()
+                                                                  .map(Skill::getName)
+                                                                  .collect(toList())));
                 for (LocalDate date = firstDate; date.compareTo(lastDate) <= 0; date = date.plusDays(1)) {
-                    nextCell(employee.getUnavailableDaySet().contains(date) ? unavailableStyle : defaultStyle)
-                            .setCellValue("");
+                    nextCell(employee.getUnavailableDaySet().contains(date) ? unavailableStyle
+                            : defaultStyle).setCellValue("");
                 }
             }
             autoSizeColumnsWithHeader();
@@ -515,7 +526,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             nextHeaderCell("Employee skill requirements");
             nextHeaderCell("Employee assignments");
             Map<Flight, List<FlightAssignment>> flightToFlightAssignmentMap = solution.getFlightAssignmentList()
-                    .stream().collect(groupingBy(FlightAssignment::getFlight, toList()));
+                                                                                      .stream()
+                                                                                      .collect(groupingBy(FlightAssignment::getFlight, toList()));
             for (Flight flight : solution.getFlightList()) {
                 nextRow();
                 nextCell().setCellValue(flight.getFlightNumber());
@@ -523,27 +535,29 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 nextCell().setCellValue(DATE_TIME_FORMATTER.format(flight.getDepartureUTCDateTime()));
                 nextCell().setCellValue(flight.getArrivalAirport().getCode());
                 nextCell().setCellValue(DATE_TIME_FORMATTER.format(flight.getArrivalUTCDateTime()));
-                
+
                 List<FlightAssignment> flightAssignmentList = flightToFlightAssignmentMap.get(flight);
                 nextCell().setCellValue(flightAssignmentList.stream()
-                        .map(FlightAssignment::getRequiredSkill).map(Skill::getName)
-                        .collect(joining(", ")));
+                                                            .map(FlightAssignment::getRequiredSkill)
+                                                            .map(Skill::getName)
+                                                            .collect(joining(", ")));
                 nextCell().setCellValue(flightAssignmentList.stream()
-                        .map(FlightAssignment::getEmployee)
-                        .map(employee -> employee == null ? "" : employee.getName())
-                        .collect(joining(", ")));
+                                                            .map(FlightAssignment::getEmployee)
+                                                            .map(employee -> employee == null ? ""
+                                                                    : employee.getName())
+                                                            .collect(joining(", ")));
             }
             autoSizeColumnsWithHeader();
         }
 
         private void writeEmployeesView() {
             nextSheet("Employees view", 2, 2, true);
-            int minimumHour = solution.getFlightList().stream()
-                    .map(Flight::getDepartureUTCTime).map(LocalTime::getHour)
-                    .min(Comparator.naturalOrder()).orElse(9);
-            int maximumHour = solution.getFlightList().stream()
-                    .map(Flight::getArrivalUTCTime).map(LocalTime::getHour)
-                    .max(Comparator.naturalOrder()).orElse(17);
+            int minimumHour = solution.getFlightList().stream().map(Flight::getDepartureUTCTime)
+                                      .map(LocalTime::getHour).min(Comparator.naturalOrder())
+                                      .orElse(9);
+            int maximumHour = solution.getFlightList().stream().map(Flight::getArrivalUTCTime)
+                                      .map(LocalTime::getHour).max(Comparator.naturalOrder())
+                                      .orElse(17);
             nextRow();
             nextHeaderCell("");
             nextHeaderCell("");
@@ -551,8 +565,9 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             LocalDate lastDate = solution.getScheduleLastUTCDate();
             for (LocalDate date = firstDate; date.compareTo(lastDate) <= 0; date = date.plusDays(1)) {
                 nextHeaderCell(DAY_FORMATTER.format(date));
-                currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber, currentRowNumber,
-                        currentColumnNumber, currentColumnNumber + (maximumHour - minimumHour)));
+                currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
+                        currentRowNumber, currentColumnNumber,
+                        currentColumnNumber + (maximumHour - minimumHour)));
                 currentColumnNumber += (maximumHour - minimumHour);
             }
             nextRow();
@@ -564,37 +579,47 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 }
             }
             Map<Employee, List<FlightAssignment>> employeeToFlightAssignmentMap = solution.getFlightAssignmentList()
-                    .stream().filter(flightAssignment -> flightAssignment.getEmployee() != null)
-                    .collect(groupingBy(FlightAssignment::getEmployee, toList()));
+                                                                                          .stream()
+                                                                                          .filter(flightAssignment -> flightAssignment.getEmployee() != null)
+                                                                                          .collect(groupingBy(FlightAssignment::getEmployee, toList()));
             for (Employee employee : solution.getEmployeeList()) {
                 nextRow();
                 nextHeaderCell(employee.getName());
                 nextHeaderCell(employee.getHomeAirport().getCode());
                 List<FlightAssignment> employeeAssignmentList = employeeToFlightAssignmentMap.get(employee);
                 if (employeeAssignmentList != null) {
-                    employeeAssignmentList.sort(Comparator
-                            .<FlightAssignment, LocalDateTime>comparing(a -> a.getFlight().getDepartureUTCDateTime())
-                            .thenComparing(a -> a.getFlight().getArrivalUTCDateTime())
-                            .thenComparing(FlightAssignment::getId));
+                    employeeAssignmentList.sort(Comparator.<FlightAssignment, LocalDateTime>comparing(a -> a.getFlight()
+                                                                                                            .getDepartureUTCDateTime())
+                                                          .thenComparing(a -> a.getFlight()
+                                                                               .getArrivalUTCDateTime())
+                                                          .thenComparing(FlightAssignment::getId));
                     for (LocalDate date = firstDate; date.compareTo(lastDate) <= 0; date = date.plusDays(1)) {
                         boolean unavailable = employee.getUnavailableDaySet().contains(date);
                         Map<Integer, List<FlightAssignment>> hourToAssignmentListMap = extractHourToAssignmentListMap(employeeAssignmentList, date);
                         for (int departureHour = minimumHour; departureHour <= maximumHour; departureHour++) {
                             List<FlightAssignment> flightAssignmentList = hourToAssignmentListMap.get(departureHour);
                             if (flightAssignmentList != null) {
-                                nextCell(unavailable ? unavailableStyle : defaultStyle).setCellValue(flightAssignmentList.stream()
-                                        .map(FlightAssignment::getFlight)
-                                        .map(flight -> flight.getDepartureAirport().getCode()
-                                                + MILITARY_TIME_FORMATTER.format(flight.getDepartureUTCTime())
-                                                + "→"
-                                                + flight.getArrivalAirport().getCode()
-                                                + MILITARY_TIME_FORMATTER.format(flight.getArrivalUTCTime()))
-                                        .collect(joining(", ")));
-                                int maxArrivalHour = flightAssignmentList.stream().map(a -> a.getFlight().getArrivalUTCTime().getHour())
-                                        .max(Comparator.naturalOrder()).get();
+                                nextCell(unavailable ? unavailableStyle
+                                        : defaultStyle).setCellValue(flightAssignmentList.stream()
+                                                                                         .map(FlightAssignment::getFlight)
+                                                                                         .map(flight -> flight.getDepartureAirport()
+                                                                                                              .getCode()
+                                                                                                 + MILITARY_TIME_FORMATTER.format(flight.getDepartureUTCTime())
+                                                                                                 + "→"
+                                                                                                 + flight.getArrivalAirport()
+                                                                                                         .getCode()
+                                                                                                 + MILITARY_TIME_FORMATTER.format(flight.getArrivalUTCTime()))
+                                                                                         .collect(joining(", ")));
+                                int maxArrivalHour = flightAssignmentList.stream()
+                                                                         .map(a -> a.getFlight()
+                                                                                    .getArrivalUTCTime()
+                                                                                    .getHour())
+                                                                         .max(Comparator.naturalOrder())
+                                                                         .get();
                                 int stretch = maxArrivalHour - departureHour;
-                                currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber, currentRowNumber,
-                                        currentColumnNumber, currentColumnNumber + stretch));
+                                currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
+                                        currentRowNumber, currentColumnNumber,
+                                        currentColumnNumber + stretch));
                                 currentColumnNumber += stretch;
                                 departureHour += stretch;
                             } else {
@@ -637,7 +662,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             nextSheet("Score view", 1, 3, true);
             nextRow();
             nextHeaderCell("Score");
-            nextCell().setCellValue(solution.getScore() == null ? "Not yet solved" : solution.getScore().toShortString());
+            nextCell().setCellValue(solution.getScore() == null ? "Not yet solved"
+                    : solution.getScore().toShortString());
             nextRow();
             nextRow();
             nextHeaderCell("Constraint match");
@@ -648,13 +674,17 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 nextHeaderCell(constraintMatchTotal.getConstraintName());
                 nextCell();
                 nextCell().setCellValue(constraintMatchTotal.getScore().toShortString());
-                List<ConstraintMatch> constraintMatchList = new ArrayList<>(constraintMatchTotal.getConstraintMatchSet());
+                List<ConstraintMatch> constraintMatchList = new ArrayList<>(
+                        constraintMatchTotal.getConstraintMatchSet());
                 constraintMatchList.sort(Comparator.comparing(ConstraintMatch::getScore));
                 for (ConstraintMatch constraintMatch : constraintMatchList) {
                     nextRow();
-                    nextCell().setCellValue("    " + constraintMatch.getJustificationList().stream()
-                            .filter(o -> o instanceof FlightAssignment).map(o -> ((FlightAssignment) o).getFlight().toString())
-                            .collect(joining(", ")));
+                    nextCell().setCellValue("    "
+                            + constraintMatch.getJustificationList().stream()
+                                             .filter(o -> o instanceof FlightAssignment)
+                                             .map(o -> ((FlightAssignment) o).getFlight()
+                                                                             .toString())
+                                             .collect(joining(", ")));
                     nextCell().setCellValue(constraintMatch.getScore().toShortString());
                     nextCell();
                     nextCell();

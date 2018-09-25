@@ -11,6 +11,8 @@
     <scoreDrl>org/optaplanner/examples/flightcrewscheduling/solver/flightCrewSchedulingScoreRules.drl</scoreDrl>
   </scoreDirectorFactory>
 
+  <!-- <moveThreadCount>3</moveThreadCount>  -->
+  
   <!--<termination>-->
     <!--<minutesSpentLimit>5</minutesSpentLimit>-->
   <!--</termination>-->

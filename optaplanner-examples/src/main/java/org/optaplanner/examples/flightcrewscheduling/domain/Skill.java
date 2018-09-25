@@ -24,6 +24,11 @@ public class Skill extends AbstractPersistable {
 
     public Skill() {
     }
+    
+    public Skill(String name) {
+        super();
+        this.name = name;
+    }
 
     @Override
     public String toString() {

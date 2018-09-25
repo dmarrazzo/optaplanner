@@ -73,19 +73,6 @@ end
 // ############################################################################
 
 
-rule "First assignment departing from home"
-    when
-        Employee(!isFirstAssignmentDepartingFromHome())
-    then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1_000_000);
-end
-
-rule "Last assignment arriving at home"
-    when
-        Employee(!isLastAssignmentArrivingAtHome())
-    then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1_000_000);
-end
 
 //rule "Load balance flight duration total per employee"
 //    when
