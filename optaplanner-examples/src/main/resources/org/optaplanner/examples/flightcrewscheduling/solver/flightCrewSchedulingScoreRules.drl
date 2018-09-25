@@ -47,11 +47,11 @@ rule "Flight conflict"
         FlightAssignment(employee != null, $employee : employee,
                 $flight: flight,
                 $leftId : id)
-        FlightAssignment(employee != null, getFlight().overlaps($flight),
-                employee == $employee,
+        $fa : FlightAssignment(employee != null, employee == $employee,
                 id > $leftId)
+        $o : Long( this > 0 ) from $fa.getFlight().overlaps($flight)
     then
-        scoreHolder.addHardConstraintMatch(kcontext, -10);
+        scoreHolder.addHardConstraintMatch(kcontext, -$o);
 end
 
 rule "Transfer between two flights"

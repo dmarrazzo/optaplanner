@@ -16,10 +16,13 @@
 
 package org.optaplanner.examples.flightcrewscheduling.domain;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAmount;
+import java.time.temporal.TemporalUnit;
 
 import org.optaplanner.examples.common.domain.AbstractPersistable;
 
@@ -54,10 +57,31 @@ public class Flight extends AbstractPersistable {
         return arrivalUTCDateTime.toLocalTime();
     }
 
-    // TODO return overlapping time to avoid score trap?
-    public boolean overlaps(Flight other) {
-        return departureUTCDateTime.compareTo(other.arrivalUTCDateTime) < 0
-            && other.departureUTCDateTime.compareTo(arrivalUTCDateTime) < 0;
+    public long overlaps(Flight other) {
+        LocalDateTime startA = departureUTCDateTime.minus(getSignInDuration());
+        LocalDateTime endA = arrivalUTCDateTime.plus(getSignOffDuration());
+        LocalDateTime startB = other.departureUTCDateTime.minus(other.getSignInDuration());
+        LocalDateTime endB = other.arrivalUTCDateTime.plus(other.getSignOffDuration());
+
+        Duration between = null;
+
+        // if there is an overlap
+        if (startA.isBefore(endB) && startB.isBefore(endA)) {
+            if (startA.isBefore(startB))
+                between = Duration.between(startB, endA);
+            else
+                between = Duration.between(startA, endB);
+            return between.toMinutes();
+        } else
+            return 0;
+    }
+
+    public Duration getSignInDuration() {
+        return Duration.ofMinutes(60);
+    }
+
+    public Duration getSignOffDuration() {
+        return Duration.ofMinutes(60);
     }
 
     @Override
