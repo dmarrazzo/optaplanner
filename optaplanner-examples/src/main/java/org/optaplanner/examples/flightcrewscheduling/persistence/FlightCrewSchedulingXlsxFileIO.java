@@ -59,8 +59,9 @@ import static org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewPar
 
 public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<FlightCrewSolution> {
 
-    public static final DateTimeFormatter MILITARY_TIME_FORMATTER
-            = DateTimeFormatter.ofPattern("HHmm", Locale.ENGLISH);
+    public static final DateTimeFormatter MILITARY_TIME_FORMATTER = DateTimeFormatter.ofPattern("HHmm", Locale.ENGLISH);
+
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
 
     @Override
     public FlightCrewSolution read(File inputSolutionFile) {
@@ -144,20 +145,28 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         private void readAirportList() {
             nextSheet("Airports");
             nextRow(false);
-            readHeaderCell("Code");
-            readHeaderCell("Name");
+            //City  Country IATA    Latitude    Longitude   Altitude    Timezone    DST
+            readHeaderCell("City");
+            readHeaderCell("Country");
+            readHeaderCell("IATA");
             readHeaderCell("Latitude");
             readHeaderCell("Longitude");
+            readHeaderCell("Altitude");
+            readHeaderCell("Timezone");
+            readHeaderCell("DST");
+            
             List<Airport> airportList = new ArrayList<>(currentSheet.getLastRowNum() - 1);
             airportMap = new HashMap<>(currentSheet.getLastRowNum() - 1);
             long id = 0L;
             while (nextRow()) {
                 Airport airport = new Airport();
                 airport.setId(id++);
-                airport.setCode(nextStringCell().getStringCellValue());
                 airport.setName(nextStringCell().getStringCellValue());
+                nextCell();
+                airport.setCode(nextStringCell().getStringCellValue());
                 airport.setLatitude(nextNumericCell().getNumericCellValue());
                 airport.setLongitude(nextNumericCell().getNumericCellValue());
+                airport.setTaxiTimeInMinutesMap(new LinkedHashMap<>(currentSheet.getLastRowNum()));
                 airportMap.put(airport.getCode(), airport);
                 airportList.add(airport);
             }
@@ -171,19 +180,28 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             List<Airport> airportList = solution.getAirportList();
             nextRow();
             readHeaderCell("Airport code");
-            for (Airport airport : airportList) {
-                readHeaderCell(airport.getCode());
+
+            // prepare destination airport list
+            String destinationCode;
+            List<String> destinationList = new ArrayList<>(100);
+            while( (destinationCode = nextStringCell().getStringCellValue()) != null && !destinationCode.isEmpty()) {
+                destinationList.add(destinationCode);
             }
-            for (Airport a : airportList) {
-                a.setTaxiTimeInMinutesMap(new LinkedHashMap<>(airportList.size()));
-                nextRow();
-                readHeaderCell(a.getCode());
-                for (Airport b : airportList) {
+            
+            // each row is a taxi departing location            
+            while (nextRow()) {
+                String departingCode = nextStringCell().getStringCellValue();
+                for (String destination : destinationList) {
+                    Airport destinationAirport = airportMap.get(destination);
                     XSSFCell taxiTimeCell = nextNumericCellOrBlank();
                     if (taxiTimeCell != null) {
-                        a.getTaxiTimeInMinutesMap().put(b, (long) taxiTimeCell.getNumericCellValue());
+                        if (airportMap.get(departingCode)==null)
+                            System.out.println(departingCode);
+                        Map<Airport, Long> taxiTimeInMinutesMap = airportMap.get(departingCode).getTaxiTimeInMinutesMap();
+                        taxiTimeInMinutesMap.put(destinationAirport, (long) taxiTimeCell.getNumericCellValue());
                     }
                 }
+                
             }
         }
 
@@ -323,6 +341,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                         if (employee == null) {
                             throw new IllegalStateException(currentPosition()
                                     + ": The flight (" + flight.getFlightNumber()
+                                    
                                     + ")'s employeeAssignment's name (" + employeeNames[i]
                                     + ") does not exist in the employees (" + nameToEmployeeMap.keySet()
                                     + ") of the other sheet (Employees).");
@@ -504,6 +523,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 nextCell().setCellValue(DATE_TIME_FORMATTER.format(flight.getDepartureUTCDateTime()));
                 nextCell().setCellValue(flight.getArrivalAirport().getCode());
                 nextCell().setCellValue(DATE_TIME_FORMATTER.format(flight.getArrivalUTCDateTime()));
+                
                 List<FlightAssignment> flightAssignmentList = flightToFlightAssignmentMap.get(flight);
                 nextCell().setCellValue(flightAssignmentList.stream()
                         .map(FlightAssignment::getRequiredSkill).map(Skill::getName)

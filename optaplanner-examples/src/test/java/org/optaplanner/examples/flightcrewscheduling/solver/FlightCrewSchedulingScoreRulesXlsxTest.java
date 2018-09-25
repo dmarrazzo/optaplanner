@@ -51,7 +51,7 @@ import org.optaplanner.test.impl.score.buildin.hardsoftlong.HardSoftLongScoreVer
 @RunWith(Parameterized.class)
 public class FlightCrewSchedulingScoreRulesXlsxTest {
 
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ENGLISH);
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
 
     private static final String testFileName = "testFlightCrewSchedulingScoreRules.xlsx";
     private static final HardSoftLongScore unassignedScore = HardSoftLongScore.ZERO;
