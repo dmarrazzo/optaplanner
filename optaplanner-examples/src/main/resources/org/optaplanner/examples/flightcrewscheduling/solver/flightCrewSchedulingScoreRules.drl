@@ -68,6 +68,16 @@ rule "Employee unavailability"
         scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
+rule "Intraday flights admitted when the aircraft is the same - legs"
+	when
+        FlightAssignment(employee != null, $employee : employee, $flight: flight)
+        FlightAssignment(employee != null, employee == $employee, 
+        	flight.departureUTCDate == $flight.departureUTCDate, 
+        	flight.aircraftRegistration != $flight.aircraftRegistration )
+	then
+        scoreHolder.addHardConstraintMatch(kcontext, -1);
+end
+
 // ############################################################################
 // Soft constraints
 // ############################################################################
