@@ -28,6 +28,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -65,6 +66,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
 
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
+
     @Override
     public FlightCrewSolution read(File inputSolutionFile) {
         try (InputStream in = new BufferedInputStream(new FileInputStream(inputSolutionFile))) {
@@ -79,6 +82,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
     private static class FlightCrewSchedulingXlsxReader
             extends AbstractXlsxReader<FlightCrewSolution> {
 
+        private static final String DAY_OFF_MATCH = "OUV|UW|W|V|C";
+        private static final String COMMA_SPLIT = ",\\s+|,";
         private Map<String, Skill> skillMap;
         private Map<String, Employee> nameToEmployeeMap;
         private Map<String, Airport> airportMap;
@@ -254,14 +259,19 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 employee.setSkillSet(skillSet);
                 employee.setFlightAssignmentSet(new TreeSet<>(
                         FlightAssignment.DATE_TIME_COMPARATOR));
-                nameToEmployeeMap.put(employee.getName(), employee);
-                employeeList.add(employee);
-                //TODO remove following
                 Set<LocalDate> unavailableDaySet = new LinkedHashSet<>();
                 employee.setUnavailableDaySet(unavailableDaySet);
+
+                nameToEmployeeMap.put(employee.getName(), employee);
+                employeeList.add(employee);
                 
-                // TODO aircraft type qualification
-                nextCell();
+                // aircraft type qualification
+                String aircraftTypeQualificationsValue = nextStringCell().getStringCellValue();
+                String[] aircraftTypeQualificationsArray = aircraftTypeQualificationsValue.split(COMMA_SPLIT);
+                Set<String> aircraftTypeQualifications = new HashSet<>();
+                aircraftTypeQualifications.addAll(Arrays.asList(aircraftTypeQualificationsArray));
+                employee.setAircraftTypeQualifications(aircraftTypeQualifications);
+
                 // Home base
                 String homeAirportCode = nextStringCell().getStringCellValue();
                 Airport homeAirport = airportMap.get(homeAirportCode);
@@ -272,8 +282,12 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                             + ") of the other sheet (Airports).");
                 }
                 employee.setHomeAirport(homeAirport);
-                // TODO Special qualification
-                nextCell();
+                // special qualification
+                String specialQualificationsValue = nextStringCell().getStringCellValue();
+                String[] specialQualificationsArray = specialQualificationsValue.split(COMMA_SPLIT);
+                Set<String> specialQualifications = new HashSet<>();
+                specialQualifications.addAll(Arrays.asList(specialQualificationsArray));
+                employee.setSpecialQualifications(specialQualifications);
             } else {
                 // skip repeated information
                 // aircraft type qualification
@@ -286,8 +300,13 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             // Duty date
             String dutyDate = nextStringCell().getStringCellValue();
             // Duty code
-            String dutyCode = nextStringCell().getStringCellValue();
+            String[] dutyCodes = nextStringCell().getStringCellValue().split(COMMA_SPLIT);
             
+            for (String dutyCode : dutyCodes) {
+                if (dutyCode.matches(DAY_OFF_MATCH))
+                    employee.getUnavailableDaySet().add(LocalDate.parse(dutyDate, DATE_FORMATTER));
+            }
+
             return newEmp;
         }
 

@@ -32,6 +32,10 @@ public class Employee extends AbstractPersistable {
     private Airport homeAirport;
 
     private Set<Skill> skillSet;
+    private Set<String> aircraftTypeQualifications;
+    private Set<String> specialQualifications;
+
+    
     @Deprecated
     private Set<LocalDate> unavailableDaySet;
     private Set<DateTimeInterval> unavailableIntervalSet;
@@ -173,6 +177,22 @@ public class Employee extends AbstractPersistable {
 
     public void setPreAssignedDutySet(Set<DateTimeInterval> preAssignedDutySet) {
         this.preAssignedDutySet = preAssignedDutySet;
+    }
+
+    public Set<String> getAircraftTypeQualifications() {
+        return aircraftTypeQualifications;
+    }
+
+    public void setAircraftTypeQualifications(Set<String> aircraftTypeQualifications) {
+        this.aircraftTypeQualifications = aircraftTypeQualifications;
+    }
+
+    public Set<String> getSpecialQualifications() {
+        return specialQualifications;
+    }
+
+    public void setSpecialQualifications(Set<String> specialQualifications) {
+        this.specialQualifications = specialQualifications;
     }
 
 }
