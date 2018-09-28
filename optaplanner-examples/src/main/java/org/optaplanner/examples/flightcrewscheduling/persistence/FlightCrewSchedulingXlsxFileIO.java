@@ -87,6 +87,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         private Map<String, Skill> skillMap;
         private Map<String, Employee> nameToEmployeeMap;
         private Map<String, Airport> airportMap;
+        private HashMap<String, String[]> qualificationAircraftTypeMap;
 
         public FlightCrewSchedulingXlsxReader(XSSFWorkbook workbook) {
             super(workbook);
@@ -99,9 +100,30 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             readSkillList();
             readAirportList();
             readTaxiTimeMaps();
+            readQualifications();
             readEmployeeList();
             readFlightListAndFlightAssignmentList();
             return solution;
+        }
+
+        private void readQualifications() {
+            nextSheet("Qualifications");
+            nextRow(false);
+            readHeaderCell("Description");
+            readHeaderCell("Qualification");
+            readHeaderCell("Aircraft Type");
+
+            qualificationAircraftTypeMap = new HashMap<>();
+            
+            while (nextRow()) {
+                //skip description
+                nextCell();
+                //qualification
+                String qualification = nextStringCell().getStringCellValue();
+                String aircraftTypeValue = nextStringCell().getStringCellValue();
+                String[] aircraftTypeArray = aircraftTypeValue.split(COMMA_SPLIT);
+                qualificationAircraftTypeMap.put(qualification, aircraftTypeArray);
+            }
         }
 
         private void readConfiguration() {
@@ -221,7 +243,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
             long id = 0L;
             while (nextRow()) {
-                if (addEmployee(employeeList,"CP", id))
+                if (readEmployee(employeeList,"CP", id))
                     id++;
             }
             // FO First Officer ------
@@ -231,7 +253,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             nextRow(false);
 
             while (nextRow()) {
-                if (addEmployee(employeeList, "FO", id))
+                if (readEmployee(employeeList, "FO", id))
                     id++;
             }
 
@@ -245,7 +267,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
          * @param id keep track of new instances of Employee added
          * @return true if new employee added
          */
-        private boolean addEmployee(List<Employee> employeeList, String skill, long id) {
+        private boolean readEmployee(List<Employee> employeeList, String skill, long id) {
             String employeeName = nextStringCell().getStringCellValue();
             Employee employee = nameToEmployeeMap.get(employeeName);
             boolean newEmp = false;
@@ -269,7 +291,11 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 String aircraftTypeQualificationsValue = nextStringCell().getStringCellValue();
                 String[] aircraftTypeQualificationsArray = aircraftTypeQualificationsValue.split(COMMA_SPLIT);
                 Set<String> aircraftTypeQualifications = new HashSet<>();
-                aircraftTypeQualifications.addAll(Arrays.asList(aircraftTypeQualificationsArray));
+                for (String aircraftTypeQualification : aircraftTypeQualificationsArray) {
+                    String[] qualificationAircraftTypeArray = qualificationAircraftTypeMap.get(aircraftTypeQualification);
+                    if (qualificationAircraftTypeArray!= null)
+                        aircraftTypeQualifications.addAll(Arrays.asList(qualificationAircraftTypeArray));
+                }
                 employee.setAircraftTypeQualifications(aircraftTypeQualifications);
 
                 // Home base

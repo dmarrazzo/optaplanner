@@ -53,6 +53,14 @@ public class Employee extends AbstractPersistable {
     public boolean hasSkill(Skill skill) {
         return skillSet.contains(skill);
     }
+    
+    public boolean hasAircraftTypeQualification(String qualificationName) {
+        return aircraftTypeQualifications.contains(qualificationName);
+    }
+
+    public boolean hasSpecialQualification(String qualificationName) {
+        return specialQualifications.contains(qualificationName);
+    }
 
     public boolean isAvailable(LocalDate date) {
         return !unavailableDaySet.contains(date);
