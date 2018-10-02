@@ -17,17 +17,26 @@
 package org.optaplanner.examples.flightcrewscheduling.domain;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Set;
 import java.util.SortedSet;
 
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
+import org.optaplanner.core.api.domain.variable.CustomShadowVariable;
 import org.optaplanner.core.api.domain.variable.InverseRelationShadowVariable;
+import org.optaplanner.core.api.domain.variable.PlanningVariableReference;
 import org.optaplanner.examples.common.domain.AbstractPersistable;
+import org.optaplanner.examples.flightcrewscheduling.domain.solver.FlightAssignmentListener;
 
 @PlanningEntity
 public class Employee extends AbstractPersistable {
 
+    private static final long serialVersionUID = 71L;
     private static final int MAX_TAXI_TIME = 240;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
+    
     private String name;
     private Airport homeAirport;
 
@@ -46,6 +55,9 @@ public class Employee extends AbstractPersistable {
      */
     @InverseRelationShadowVariable(sourceVariableName = "employee")
     private SortedSet<FlightAssignment> flightAssignmentSet;
+    
+    @CustomShadowVariable(variableListenerClass=FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass=FlightAssignment.class, variableName="employee") )
+    private HashMap<String, Duty> duties = new HashMap<>();
 
     public Employee() {
     }
@@ -113,6 +125,18 @@ public class Employee extends AbstractPersistable {
         return total;
     }
 
+    public Duty getDutyByDate(LocalDate date) {
+        String dateStr = DATE_FORMATTER.format(date);
+        
+        return duties.get(dateStr);
+    }
+
+    public Duty setDutyByDate(LocalDate date, Duty duty) {
+        String dateStr = DATE_FORMATTER.format(date);
+        
+        return duties.put(dateStr, duty);
+    }
+    
     @Override
     public String toString() {
         return name;
@@ -202,5 +226,8 @@ public class Employee extends AbstractPersistable {
     public void setSpecialQualifications(Set<String> specialQualifications) {
         this.specialQualifications = specialQualifications;
     }
-
+    
+    public HashMap<String,Duty> getDuties() {
+        return duties;
+    }
 }

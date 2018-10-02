@@ -17,6 +17,8 @@
 package org.optaplanner.examples.flightcrewscheduling.domain;
 
 import java.time.LocalDate;
+import java.time.Period;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.optaplanner.core.api.domain.solution.PlanningEntityCollectionProperty;
@@ -30,6 +32,8 @@ import org.optaplanner.examples.common.domain.AbstractPersistable;
 
 @PlanningSolution
 public class FlightCrewSolution extends AbstractPersistable {
+
+    private static final long serialVersionUID = 71L;
 
     private LocalDate scheduleFirstUTCDate;
     private LocalDate scheduleLastUTCDate;
@@ -59,6 +63,24 @@ public class FlightCrewSolution extends AbstractPersistable {
     public FlightCrewSolution() {
     }
 
+    @ProblemFactCollectionProperty
+    private List<Duty> calculatePotentialDuties() {
+        int days = (int) Period.between(scheduleFirstUTCDate, scheduleLastUTCDate).getDays();
+        long id = 0;
+        ArrayList<Duty> duties = new ArrayList<>(employeeList.size()*days+1);
+        for (Employee employee : employeeList) {
+            for (int day = 0; day <= days; day++) {
+                Duty duty = new Duty();
+                duty.setId(id++);
+                duty.setDate(scheduleFirstUTCDate.plusDays(day));
+                duties.add(duty);
+                employee.setDutyByDate(scheduleFirstUTCDate.plusDays(day), duty);
+            }
+        }
+        
+        return duties;
+    }
+    
     // ************************************************************************
     // Simple getters and setters
     // ************************************************************************

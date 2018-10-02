@@ -20,6 +20,7 @@ package org.optaplanner.examples.flightcrewscheduling.solver;
 import org.optaplanner.core.api.score.buildin.hardsoftlong.HardSoftLongScoreHolder;
 
 import org.optaplanner.examples.flightcrewscheduling.domain.Airport;
+import org.optaplanner.examples.flightcrewscheduling.domain.Duty;
 import org.optaplanner.examples.flightcrewscheduling.domain.Employee;
 import org.optaplanner.examples.flightcrewscheduling.domain.Flight;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightAssignment;
