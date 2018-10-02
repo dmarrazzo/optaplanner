@@ -95,13 +95,19 @@ rule "Intraday flights admitted when the aircraft is the same - legs"
         	flight.departureUTCDate == $flight.departureUTCDate, 
         	flight.aircraftRegistration != $flight.aircraftRegistration )
 	then
-        scoreHolder.addHardConstraintMatch(kcontext, -1);
+        scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
 // ############################################################################
 // Soft constraints
 // ############################################################################
 
+rule "Maximum dayly FDP"
+	when
+		Duty ( $over : overMaxFDP )
+	then
+        scoreHolder.addSoftConstraintMatch(kcontext, -$over);
+end
 
 
 //rule "Load balance flight duration total per employee"

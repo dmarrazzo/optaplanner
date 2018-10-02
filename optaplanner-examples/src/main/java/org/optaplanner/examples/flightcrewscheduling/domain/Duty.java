@@ -77,6 +77,14 @@ public class Duty extends AbstractPersistable {
         }
     }
 
+    public int getOverMaxFDP() {
+        long fdp = getFlightDutyPeriodMin();
+        if (fdp > 720)
+            return (int) fdp-720;
+        else
+            return 0;
+    }
+    
     @Override
     public String toString() {
         return String.format("Duty [code=%s, date=%s, flightAssignments=%s, FDP=%d]", code, date, flightAssignments, getFlightDutyPeriod().orElse(Duration.ZERO)
