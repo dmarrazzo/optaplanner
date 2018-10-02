@@ -36,6 +36,15 @@ global HardSoftLongScoreHolder scoreHolder;
 // Hard constraints
 // ############################################################################
 
+/*
+rule "Test Duties"
+	when
+		Employee( flightAssignmentSet!.size() > 1, $duty : duties["2018-07-15"] )
+	then
+		System.out.println($duty);
+end
+*/
+
 rule "Required skill"
     when
         FlightAssignment(employee != null, !getEmployee().hasSkill(getRequiredSkill()))
