@@ -16,7 +16,12 @@
 
 package org.optaplanner.examples.flightcrewscheduling.domain;
 
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Locale;
@@ -36,6 +41,8 @@ public class Employee extends AbstractPersistable {
     private static final long serialVersionUID = 71L;
     private static final int MAX_TAXI_TIME = 240;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
+    private static final ZoneId UTC = ZoneId.of("UTC");
+    private static final ZoneId GMTp2 = ZoneId.of("GMT+2");
     
     private String name;
     private Airport homeAirport;
@@ -43,12 +50,7 @@ public class Employee extends AbstractPersistable {
     private Set<Skill> skillSet;
     private Set<String> aircraftTypeQualifications;
     private Set<String> specialQualifications;
-
-    
-    @Deprecated
     private Set<LocalDate> unavailableDaySet;
-    private Set<DateTimeInterval> unavailableIntervalSet;
-    private Set<DateTimeInterval> preAssignedDutySet;
 
     /**
      * Sorted by {@link FlightAssignment#DATE_TIME_COMPARATOR}.
@@ -137,6 +139,48 @@ public class Employee extends AbstractPersistable {
         return duties.put(dateStr, duty);
     }
     
+    /**
+     * 
+     * @param flightAssignment
+     * @return minutes encroaching the day off respect
+     */
+    public int dayoffRespect(FlightAssignment flightAssignment) {
+        LocalDateTime departureUTCDateTime = flightAssignment.getFlight().getDepartureUTCDateTime();
+        ZonedDateTime departureAtAcclimitezedZone = ZonedDateTime.of(departureUTCDateTime, UTC).withZoneSameInstant(getAcclimatizedZoneId());
+        
+        // previous day is off
+        if (!isAvailable(departureAtAcclimitezedZone.minusDays(1).toLocalDate())) {
+            LocalTime departureLimit = LocalTime.of(8, 0);
+            
+            LocalTime departureTime = departureAtAcclimitezedZone.toLocalTime();
+            if(departureLimit.isAfter(departureTime))
+                return (int) Duration.between(departureTime, departureLimit).abs().toMinutes();
+        }
+        
+        LocalDateTime arrivalUTCDateTime= flightAssignment.getFlight().getArrivalUTCDateTime();
+        ZonedDateTime arrivalAtAcclimitezedZone = ZonedDateTime.of(arrivalUTCDateTime, UTC).withZoneSameInstant(getAcclimatizedZoneId());
+                
+        // next day is off
+        if (!isAvailable(arrivalAtAcclimitezedZone.plusDays(1).toLocalDate())) {
+            LocalTime arrivalLimit = LocalTime.of(22, 0);
+            
+            LocalTime arrivalTime = arrivalAtAcclimitezedZone.toLocalTime();
+            if(arrivalTime.isAfter(arrivalLimit))
+                return (int) Duration.between(arrivalLimit, arrivalTime).toMinutes();
+        }
+        
+        // if the arrival date is in a day off then return 1440 (24h of encroaching)
+        // TODO: check if it's correct to consider the UTC time
+        if ( !isAvailable ( arrivalUTCDateTime.toLocalDate() ) )
+            return 1440;
+        
+        return 0;
+    }
+    
+    public ZoneId getAcclimatizedZoneId() {
+        return GMTp2;
+    }
+    
     @Override
     public String toString() {
         return name;
@@ -193,22 +237,6 @@ public class Employee extends AbstractPersistable {
 
     public void setFlightAssignmentSet(SortedSet<FlightAssignment> flightAssignmentSet) {
         this.flightAssignmentSet = flightAssignmentSet;
-    }
-
-    public Set<DateTimeInterval> getUnavailableIntervalSet() {
-        return unavailableIntervalSet;
-    }
-
-    public void setUnavailableIntervalSet(Set<DateTimeInterval> unavailableIntervalSet) {
-        this.unavailableIntervalSet = unavailableIntervalSet;
-    }
-
-    public Set<DateTimeInterval> getPreAssignedDutySet() {
-        return preAssignedDutySet;
-    }
-
-    public void setPreAssignedDutySet(Set<DateTimeInterval> preAssignedDutySet) {
-        this.preAssignedDutySet = preAssignedDutySet;
     }
 
     public Set<String> getAircraftTypeQualifications() {

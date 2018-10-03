@@ -88,6 +88,13 @@ rule "Employee unavailability"
         scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
+rule "Dayoff distance respect"
+    when
+        FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -1);
+end
+
 rule "Intraday flights admitted when the aircraft is the same - legs"
 	when
         FlightAssignment(employee != null, $employee : employee, $flight: flight)
