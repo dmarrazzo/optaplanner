@@ -54,6 +54,8 @@ import java.util.TreeSet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.optaplanner.core.api.score.constraint.ConstraintMatch;
 import org.optaplanner.core.api.score.constraint.ConstraintMatchTotal;
@@ -67,6 +69,7 @@ import org.optaplanner.examples.flightcrewscheduling.domain.FlightAssignment;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametrization;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewSolution;
 import org.optaplanner.examples.flightcrewscheduling.domain.Skill;
+import org.optaplanner.swing.impl.TangoColorFactory;
 
 public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<FlightCrewSolution> {
 
@@ -251,7 +254,6 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             nextSheet("Taxi time");
             nextRow();
             readHeaderCell("Driving time in minutes by taxi between two nearby airports to allow employees to start from a different airport.");
-            List<Airport> airportList = solution.getAirportList();
             nextRow();
             readHeaderCell("Airport code");
 
@@ -482,6 +484,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
     private static class FlightCrewSchedulingXlsxWriter
             extends AbstractXlsxWriter<FlightCrewSolution> {
+        protected static final XSSFColor FILLED_COLOR = new XSSFColor(TangoColorFactory.ORANGE_1);
 
         public FlightCrewSchedulingXlsxWriter(FlightCrewSolution solution) {
             super(solution, FlightCrewSchedulingApp.SOLVER_CONFIG);
@@ -647,6 +650,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         }
 
         private void writeEmployeesView() {
+            XSSFCellStyle filledStyle = createStyle(FILLED_COLOR);
+
             nextSheet("Employees view", 2, 2, true);
             int minimumHour = solution.getFlightList().stream().map(Flight::getDepartureUTCTime)
                                       .map(LocalTime::getHour).min(Comparator.naturalOrder())
@@ -708,8 +713,9 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                             // get the flight assignment list for a departing hour
                             List<FlightAssignment> flightAssignmentList = hourToAssignmentListMap.get(departureHour);
                             if (flightAssignmentList != null) {
+                                
                                 nextCell(unavailable ? unavailableStyle
-                                        : defaultStyle).setCellValue(flightAssignmentList.stream()
+                                        : filledStyle).setCellValue(flightAssignmentList.stream()
                                                                                          .map(FlightAssignment::getFlight)
                                                                                          .map(flight -> flight.getDepartureAirport()
                                                                                                               .getCode()
