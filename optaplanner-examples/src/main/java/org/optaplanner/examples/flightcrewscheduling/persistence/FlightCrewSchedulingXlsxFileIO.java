@@ -737,6 +737,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                         boolean unavailable = employee.getUnavailableDaySet().contains(date);
                         Map<Integer, List<FlightAssignment>> hourToAssignmentListMap = extractHourToAssignmentListMap(employeeAssignmentList, date);
                         
+                        Duty duty = employee.getDutyByDate(date);
+                        
                         // for each time slot
                         for (int departureHour = minimumHour; departureHour <= maximumHour; departureHour++) {
                             // get the flight assignment list for a departing hour
@@ -775,7 +777,21 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                                 currentColumnNumber += stretch;
                                 departureHour += stretch;
                             } else {
-                                nextCell(unavailable ? unavailableStyle : defaultStyle);
+                                try {
+                                    if (unavailable) {
+                                        nextCell(unavailableStyle);
+                                    } else if (duty.getCode().contentEquals("GND") && departureHour == duty.getStart().getHour()) {
+                                        int stretch = (int) Duration.between(duty.getStart(), duty.getEnd()).abs().toHours() + 1;
+                                        nextCell(unavailableStyle).setCellValue("GND");
+                                        currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
+                                                currentRowNumber, currentColumnNumber,
+                                                currentColumnNumber + stretch));
+                                    } else {
+                                        nextCell(defaultStyle);                                    
+                                    }
+                                } catch (NullPointerException e) {
+                                    nextCell(defaultStyle);                                                                        
+                                }
                             }
                         }
                     }
