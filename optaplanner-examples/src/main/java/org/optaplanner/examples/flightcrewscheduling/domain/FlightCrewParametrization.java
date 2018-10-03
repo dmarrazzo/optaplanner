@@ -16,6 +16,9 @@
 
 package org.optaplanner.examples.flightcrewscheduling.domain;
 
+import java.time.Duration;
+import java.time.LocalTime;
+
 import org.optaplanner.examples.common.domain.AbstractPersistable;
 
 public class FlightCrewParametrization extends AbstractPersistable {

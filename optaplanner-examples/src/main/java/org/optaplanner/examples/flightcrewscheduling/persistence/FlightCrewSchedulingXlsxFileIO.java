@@ -16,6 +16,15 @@
 
 package org.optaplanner.examples.flightcrewscheduling.persistence;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+import static org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametrization.EMPLOYEE_UNAVAILABILITY;
+import static org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametrization.FLIGHT_CONFLICT;
+import static org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametrization.LOAD_BALANCE_FLIGHT_DURATION_TOTAL_PER_EMPLOYEE;
+import static org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametrization.REQUIRED_SKILL;
+import static org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametrization.TRANSFER_BETWEEN_TWO_FLIGHTS;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,10 +35,12 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -37,7 +48,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -50,15 +60,13 @@ import org.optaplanner.core.api.score.constraint.ConstraintMatchTotal;
 import org.optaplanner.examples.common.persistence.AbstractXlsxSolutionFileIO;
 import org.optaplanner.examples.flightcrewscheduling.app.FlightCrewSchedulingApp;
 import org.optaplanner.examples.flightcrewscheduling.domain.Airport;
+import org.optaplanner.examples.flightcrewscheduling.domain.Duty;
 import org.optaplanner.examples.flightcrewscheduling.domain.Employee;
 import org.optaplanner.examples.flightcrewscheduling.domain.Flight;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightAssignment;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametrization;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewSolution;
 import org.optaplanner.examples.flightcrewscheduling.domain.Skill;
-
-import static java.util.stream.Collectors.*;
-import static org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametrization.*;
 
 public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<FlightCrewSolution> {
 
@@ -101,6 +109,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             readAirportList();
             readTaxiTimeMaps();
             readQualifications();
+            readMaxFDP();
             readEmployeeList();
             readFlightListAndFlightAssignmentList();
             return solution;
@@ -124,6 +133,47 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 String[] aircraftTypeArray = aircraftTypeValue.split(COMMA_SPLIT);
                 qualificationAircraftTypeMap.put(qualification, aircraftTypeArray);
             }
+        }
+
+        @SuppressWarnings("deprecation")
+        private void readMaxFDP() {
+            nextSheet("FDP");
+            nextRow(false);
+            readHeaderCell("Basic Maximum daily FDP");
+            nextRow(false);
+            // skip second header
+            nextRow(false);
+            
+            readHeaderCell("min");
+            readHeaderCell("max");
+            
+            // initialize the segment from the header
+            int segmentColumns = currentRow.getLastCellNum()-2;
+            int[] segmentNum = new int[segmentColumns];
+            for (int i = 0; i< segmentNum.length; i++) {
+                segmentNum[i] = (int) nextNumericCell().getNumericCellValue(); 
+            }
+            
+            int maxFDPListLength = currentSheet.getLastRowNum() - currentRowNumber;
+            Duty.maxFDPList = new Duty.MaxFDP[maxFDPListLength];
+
+            // the following instance is temporary
+            Duty dutyInstance = new Duty();
+            
+            // for each maxFDP row
+            for (int countMaxFDP = 0; countMaxFDP < maxFDPListLength; countMaxFDP++) {
+                nextRow();
+                Duty.MaxFDP maxFDPRange = dutyInstance.new MaxFDP();
+                Duty.maxFDPList[countMaxFDP] = maxFDPRange;
+                Date startTime = nextNumericCell().getDateCellValue();
+                Date endTime = nextNumericCell().getDateCellValue();
+                maxFDPRange.setStart(LocalDateTime.ofInstant(startTime.toInstant(), ZoneOffset.systemDefault()).toLocalTime());
+                maxFDPRange.setEnd(LocalDateTime.ofInstant(endTime.toInstant(), ZoneOffset.systemDefault()).toLocalTime());
+                for (int i = 0; i< segmentNum.length; i++) {
+                    Date date = nextNumericCell().getDateCellValue();
+                    maxFDPRange.setMaxFDPBySegment(segmentNum[i], Duration.ofMinutes(date.getHours()*60+date.getMinutes()));
+                }
+            }                        
         }
 
         private void readConfiguration() {

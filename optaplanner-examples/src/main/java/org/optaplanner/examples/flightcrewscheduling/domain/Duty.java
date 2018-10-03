@@ -3,6 +3,9 @@ package org.optaplanner.examples.flightcrewscheduling.domain;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.TreeSet;
@@ -17,9 +20,15 @@ public class Duty extends AbstractPersistable {
 
     private static final long serialVersionUID = 71L;
 
-    private String code;
-
+    private static final ZoneId GMT = ZoneId.of("GMT");
+    private static final ZoneId GMTp2 = ZoneId.of("GMT+2");
+    
+    public static MaxFDP[] maxFDPList;
+    
     private LocalDate date;
+
+    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
+    private String code;
 
     @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
     private NavigableSet<FlightAssignment> flightAssignments;
@@ -77,10 +86,29 @@ public class Duty extends AbstractPersistable {
         }
     }
 
+    /**
+     * 
+     * @return the number of minutes exceeding the Maximum Daily FDP
+     */
     public int getOverMaxFDP() {
-        long fdp = getFlightDutyPeriodMin();
-        if (fdp > 720)
-            return (int) fdp-720;
+        int segments = getFlightAssignments().size();
+
+        if (segments == 0) 
+            return 0;
+        
+        MaxFDP maxFDPValid = maxFDPList[0];
+        for (MaxFDP maxFDP : maxFDPList) {
+            // TODO: use employee acclimatization Time Zone
+            ZonedDateTime startZ = ZonedDateTime.of(start, GMT);
+            if (maxFDP.match(startZ.withZoneSameInstant(GMTp2).toLocalTime())) {
+                maxFDPValid = maxFDP;
+                break;
+            }
+        }
+        Duration maxFDPDuration = maxFDPValid.getMaxFDPBySegment(segments);
+        Duration difference = maxFDPDuration.minus(getFlightDutyPeriod().orElse(Duration.ZERO));
+        if (difference.isNegative())
+            return (int) difference.abs().toMinutes();
         else
             return 0;
     }
@@ -89,6 +117,54 @@ public class Duty extends AbstractPersistable {
     public String toString() {
         return String.format("Duty [code=%s, date=%s, flightAssignments=%s, FDP=%d]", code, date, flightAssignments, getFlightDutyPeriod().orElse(Duration.ZERO)
                                                                                                                                           .toMinutes());
+    }
+    
+    // ************************************************************************
+    // Inner class
+    // ************************************************************************
+
+    public class MaxFDP {
+        private LocalTime start;
+        private LocalTime end;
+        private Duration[] maxFDPList = new Duration[10];
+
+        boolean match(LocalTime time) {
+            return start.compareTo(time) <= 0 && end.compareTo(time) >= 0;
+        }
+        
+        public LocalTime getStart() {
+            return start;
+        }
+        public void setStart(LocalTime start) {
+            this.start = start;
+        }
+        public LocalTime getEnd() {
+            return end;
+        }
+        public void setEnd(LocalTime end) {
+            this.end = end;
+        }
+        public Duration[] getMaxFDPList() {
+            return maxFDPList;
+        }
+
+        public void setMaxFDPBySegment(int segment, Duration maxFDP) {
+            int index = 0;
+            if (segment <= 2)
+                index = 0;
+            else
+                index = segment - 2;
+            this.maxFDPList[index]=maxFDP;
+        }
+        
+        public Duration getMaxFDPBySegment(int segment) {
+            int index = 0;
+            if (segment <= 2)
+                index = 0;
+            else
+                index = segment - 2;
+            return this.maxFDPList[index];
+        }        
     }
 
     // ************************************************************************
