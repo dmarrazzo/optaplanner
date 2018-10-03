@@ -70,11 +70,19 @@ public class FlightCrewSolution extends AbstractPersistable {
         ArrayList<Duty> duties = new ArrayList<>(employeeList.size()*days+1);
         for (Employee employee : employeeList) {
             for (int day = 0; day <= days; day++) {
-                Duty duty = new Duty();
-                duty.setId(id++);
-                duty.setDate(scheduleFirstUTCDate.plusDays(day));
-                duties.add(duty);
-                employee.setDutyByDate(scheduleFirstUTCDate.plusDays(day), duty);
+                LocalDate dutyDate = scheduleFirstUTCDate.plusDays(day);
+                Duty dutyByDate = employee.getDutyByDate(dutyDate);
+                if (dutyByDate==null) {
+                    Duty duty = new Duty();
+                    duty.setId(id++);
+                    duty.setDate(scheduleFirstUTCDate.plusDays(day));
+                    duties.add(duty);
+                    employee.setDutyByDate(dutyDate, duty);
+                } else {
+                    // pre-assigned duty
+                    dutyByDate.setId(id++);
+                    duties.add(dutyByDate);
+                }
             }
         }
         

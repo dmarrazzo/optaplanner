@@ -114,8 +114,37 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             readQualifications();
             readMaxFDP();
             readEmployeeList();
+            readPreAssignedDuties();
             readFlightListAndFlightAssignmentList();
             return solution;
+        }
+
+        private void readPreAssignedDuties() {
+            nextSheet("CP duties");
+            nextRow(false);
+            readHeaderCell("Crewmember");
+            
+            while ( nextRow() ) {
+                String employeeName = nextStringCell().getStringCellValue();
+                String startDateString = nextStringCell().getStringCellValue();
+                String endDateString = nextStringCell().getStringCellValue();
+                double flyingHours = nextNumericCell().getNumericCellValue();
+                if(flyingHours == 0) {
+                    Employee employee = nameToEmployeeMap.get(employeeName);
+                    LocalDateTime dutyStart = LocalDateTime.parse(startDateString, DATE_TIME_FORMATTER);
+                    LocalDateTime dutyEnd = LocalDateTime.parse(endDateString, DATE_TIME_FORMATTER);
+                    LocalDate dutyDate = dutyStart.toLocalDate();
+                    
+                    Duty duty = employee.getDutyByDate(dutyDate);
+                    if (duty == null) {
+                        duty = new Duty();
+                        employee.setDutyByDate(dutyDate, duty);
+                    }
+                    duty.setCode("GND");
+                    duty.setStart(dutyStart);
+                    duty.setEnd(dutyEnd);                    
+                }
+            }
         }
 
         private void readQualifications() {
