@@ -120,14 +120,16 @@ public class Duty extends AbstractPersistable {
         }
     }
     
-    public int getRestLack() {
-        Duty nextDuty = employee.getDutyByDate(date.plusDays(1));
-
-        // if this is not a Flight Duty or there is no duty tomorrow (next duty)
-        if (flightAssignments.size() == 0 || nextDuty == null || nextDuty.getCode() == null)
+    public boolean isDayAfter(Duty otherDuty) {
+        return date.plusDays(1).compareTo(otherDuty.getDate())==0;
+    }
+    
+    public int getRestLack(Duty otherDuty) {
+        // if this is not a Flight Duty or the other duty is empty
+        if (flightAssignments.size() == 0 || otherDuty == null || otherDuty.getCode() == null)
             return 0;
         else {
-            Duration rest = Duration.between(end, nextDuty.getStart());
+            Duration rest = Duration.between(end, otherDuty.getStart());
             Duration signInDuration = flightAssignments.first().getFlight().getSignInDuration();
             Duration signOffDuration = flightAssignments.last().getFlight().getSignOffDuration();
             Duration dutyDuration = Duration.between(start.minus(signInDuration), end.plus(signOffDuration));

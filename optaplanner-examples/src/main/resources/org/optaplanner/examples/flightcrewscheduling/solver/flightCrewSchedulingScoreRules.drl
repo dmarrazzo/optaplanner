@@ -118,9 +118,11 @@ end
 
 rule "Respect Rest period"
 	when
-		Duty ( code != null, $lack : restLack > 0 )
+		$employee : Employee()
+		$dutyAfter : Duty ( employee == $employee, code != null)
+		Duty ( employee == $employee, code != null, isDayAfter($dutyAfter), getRestLack($dutyAfter) > 0 )
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -$lack);	
+        scoreHolder.addSoftConstraintMatch(kcontext, -10);	
 end
 
 /*
