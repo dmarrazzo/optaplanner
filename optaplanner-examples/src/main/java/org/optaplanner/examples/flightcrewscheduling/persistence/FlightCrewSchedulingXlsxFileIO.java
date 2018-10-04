@@ -138,6 +138,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     Duty duty = employee.getDutyByDate(dutyDate);
                     if (duty == null) {
                         duty = new Duty();
+                        duty.setDate(dutyDate);
                         employee.setDutyByDate(dutyDate, duty);
                     }
                     duty.setCode("GND");
