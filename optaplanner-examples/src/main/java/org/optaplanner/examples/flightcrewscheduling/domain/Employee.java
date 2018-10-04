@@ -84,6 +84,10 @@ public class Employee extends AbstractPersistable {
         return !unavailableDaySet.contains(date);
     }
 
+    public boolean isDayOff(LocalDate date) {
+        return unavailableDaySet.contains(date);
+    }
+
     public boolean isFirstAssignmentDepartingFromHome() {
         if (flightAssignmentSet.isEmpty()) {
             return true;
@@ -153,7 +157,7 @@ public class Employee extends AbstractPersistable {
         ZonedDateTime departureAtAcclimitezedZone = ZonedDateTime.of(departureUTCDateTime, UTC).withZoneSameInstant(getAcclimatizedZoneId());
         
         // previous day is off
-        if (!isAvailable(departureAtAcclimitezedZone.minusDays(1).toLocalDate())) {
+        if (isDayOff(departureAtAcclimitezedZone.minusDays(1).toLocalDate())) {
             LocalTime departureLimit = LocalTime.of(8, 0);
             
             LocalTime departureTime = departureAtAcclimitezedZone.toLocalTime();
@@ -165,7 +169,7 @@ public class Employee extends AbstractPersistable {
         ZonedDateTime arrivalAtAcclimitezedZone = ZonedDateTime.of(arrivalUTCDateTime, UTC).withZoneSameInstant(getAcclimatizedZoneId());
                 
         // next day is off
-        if (!isAvailable(arrivalAtAcclimitezedZone.plusDays(1).toLocalDate())) {
+        if (isDayOff(arrivalAtAcclimitezedZone.plusDays(1).toLocalDate())) {
             LocalTime arrivalLimit = LocalTime.of(22, 0);
             
             LocalTime arrivalTime = arrivalAtAcclimitezedZone.toLocalTime();
