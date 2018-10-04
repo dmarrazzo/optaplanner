@@ -92,26 +92,30 @@ public class Duty extends AbstractPersistable {
      * @return the number of minutes exceeding the Maximum Daily FDP
      */
     public int getOverMaxFDP() {
-        int segments = getFlightAssignments().size();
-
-        if (segments == 0) 
-            return 0;
-        
-        MaxFDP maxFDPValid = maxFDPList[0];
-        for (MaxFDP maxFDP : maxFDPList) {
-            // TODO: use employee acclimatization Time Zone
-            ZonedDateTime startZ = ZonedDateTime.of(start, GMT);
-            if (maxFDP.match(startZ.withZoneSameInstant(GMTp2).toLocalTime())) {
-                maxFDPValid = maxFDP;
-                break;
+        try {
+            int segments = getFlightAssignments().size();
+            
+            if (segments == 0) 
+                return 0;
+            MaxFDP maxFDPValid = maxFDPList[0];
+            
+            for (MaxFDP maxFDP : maxFDPList) {
+                // TODO: use employee acclimatization Time Zone
+                ZonedDateTime startZ = ZonedDateTime.of(start, GMT);
+                if (maxFDP.match(startZ.withZoneSameInstant(GMTp2).toLocalTime())) {
+                    maxFDPValid = maxFDP;
+                    break;
+                }
             }
-        }
-        Duration maxFDPDuration = maxFDPValid.getMaxFDPBySegment(segments);
-        Duration difference = maxFDPDuration.minus(getFlightDutyPeriod().orElse(Duration.ZERO));
-        if (difference.isNegative())
-            return (int) difference.abs().toMinutes();
-        else
+            Duration maxFDPDuration = maxFDPValid.getMaxFDPBySegment(segments);
+            Duration difference = maxFDPDuration.minus(getFlightDutyPeriod().orElse(Duration.ZERO));
+            if (difference.isNegative())
+                return (int) difference.abs().toMinutes();
+            else
+                return 0;            
+        } catch (NullPointerException e) {
             return 0;
+        }
     }
     
     public int getRestLack() {
@@ -163,6 +167,8 @@ public class Duty extends AbstractPersistable {
         private Duration[] maxFDPList = new Duration[10];
 
         boolean match(LocalTime time) {
+            if (start == null || end == null)
+                return false;
             return start.compareTo(time) <= 0 && end.compareTo(time) >= 0;
         }
         

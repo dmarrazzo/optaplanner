@@ -76,7 +76,15 @@ public class Employee extends AbstractPersistable {
         return specialQualifications.contains(qualificationName);
     }
 
+    /**
+     * 
+     * @param date
+     * @return if it's available for Flight Assignment
+     */
     public boolean isAvailable(LocalDate date) {
+        Duty dutyByDate = getDutyByDate(date);
+        if (dutyByDate != null && dutyByDate.getCode()!=null && dutyByDate.getCode().contentEquals("GND"))
+            return false;
         return !unavailableDaySet.contains(date);
     }
 
