@@ -62,13 +62,15 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
         if (flightAssignment.getEmployee() != null) {
             Duty duty = flightAssignment.getEmployee().getDutyByDate(date);
 
-            scoreDirector.beforeVariableChanged(flightAssignment.getEmployee(), "duties");
-            scoreDirector.beforeVariableChanged(duty, "flightAssignments");
-            duty.addFlightAssignment(flightAssignment);
-            scoreDirector.afterVariableChanged(duty, "flightAssignments");
-            scoreDirector.afterVariableChanged(flightAssignment.getEmployee(), "duties");
-            
-            updateDuty(scoreDirector, duty);
+            if (duty != null) {
+                //scoreDirector.beforeVariableChanged(flightAssignment.getEmployee(), "duties");
+                scoreDirector.beforeVariableChanged(duty, "flightAssignments");
+                duty.addFlightAssignment(flightAssignment);
+                scoreDirector.afterVariableChanged(duty, "flightAssignments");
+                //scoreDirector.afterVariableChanged(flightAssignment.getEmployee(), "duties");
+                
+                updateDuty(scoreDirector, duty);
+            }
         }
     }
 
@@ -79,13 +81,15 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
         if (flightAssignment.getEmployee() != null) {
             Duty duty = flightAssignment.getEmployee().getDutyByDate(date);
 
-            scoreDirector.beforeVariableChanged(flightAssignment.getEmployee(), "duties");
-            scoreDirector.beforeVariableChanged(duty, "flightAssignments");
-            duty.removeFlightAssignment(flightAssignment);
-            scoreDirector.afterVariableChanged(duty, "flightAssignments");
-            scoreDirector.afterVariableChanged(flightAssignment.getEmployee(), "duties");
-
-            updateDuty(scoreDirector, duty);
+            if (duty != null) {
+                //scoreDirector.beforeVariableChanged(flightAssignment.getEmployee(), "duties");
+                scoreDirector.beforeVariableChanged(duty, "flightAssignments");
+                duty.removeFlightAssignment(flightAssignment);
+                scoreDirector.afterVariableChanged(duty, "flightAssignments");
+                //scoreDirector.afterVariableChanged(flightAssignment.getEmployee(), "duties");
+    
+                updateDuty(scoreDirector, duty);
+            }
         }
     }
 
