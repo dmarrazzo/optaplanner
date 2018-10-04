@@ -26,6 +26,7 @@ public class Duty extends AbstractPersistable {
     public static MaxFDP[] maxFDPList;
     
     private LocalDate date;
+    private Employee employee;
 
     @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
     private String code;
@@ -113,6 +114,39 @@ public class Duty extends AbstractPersistable {
             return 0;
     }
     
+    public int getRestLack() {
+        Duty nextDuty = employee.getDutyByDate(date.plusDays(1));
+
+        // if this is not a Flight Duty or there is no duty tomorrow (next duty)
+        if (flightAssignments.size() == 0 || nextDuty == null || nextDuty.getCode() == null)
+            return 0;
+        else {
+            Duration rest = Duration.between(end, nextDuty.getStart());
+            Duration signInDuration = flightAssignments.first().getFlight().getSignInDuration();
+            Duration signOffDuration = flightAssignments.last().getFlight().getSignOffDuration();
+            Duration dutyDuration = Duration.between(start.minus(signInDuration), end.plus(signOffDuration));
+            Duration minimumRest = null;
+
+            //if the duty end in home base
+            if (flightAssignments.last().getFlight().getArrivalAirport() == employee.getHomeAirport()) {
+                if (dutyDuration.toHours()>12)
+                    minimumRest = dutyDuration;
+                else 
+                    minimumRest = Duration.ofHours(12);
+            } else {
+                if (dutyDuration.toHours()>10)
+                    minimumRest = dutyDuration;
+                else 
+                    minimumRest = Duration.ofHours(10);                
+            }
+        
+            if (rest.compareTo(minimumRest)>0)
+                return 0;
+            else
+                return (int) minimumRest.minus(rest).toMinutes();
+        }
+    }
+    
     @Override
     public String toString() {
         return String.format("Duty [code=%s, date=%s, flightAssignments=%s, FDP=%d]", code, date, flightAssignments, getFlightDutyPeriod().orElse(Duration.ZERO)
@@ -177,6 +211,14 @@ public class Duty extends AbstractPersistable {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public Employee getEmployee() {
+        return employee;
+    }
+
+    public void setEmployee(Employee employee) {
+        this.employee = employee;
     }
 
     public LocalDate getDate() {

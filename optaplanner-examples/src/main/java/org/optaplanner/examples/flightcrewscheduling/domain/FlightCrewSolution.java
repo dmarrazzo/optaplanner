@@ -74,8 +74,9 @@ public class FlightCrewSolution extends AbstractPersistable {
                 Duty dutyByDate = employee.getDutyByDate(dutyDate);
                 if (dutyByDate==null) {
                     Duty duty = new Duty();
+                    duty.setEmployee(employee);
                     duty.setId(id++);
-                    duty.setDate(scheduleFirstUTCDate.plusDays(day));
+                    duty.setDate(dutyDate);
                     duties.add(duty);
                     employee.setDutyByDate(dutyDate, duty);
                 } else {

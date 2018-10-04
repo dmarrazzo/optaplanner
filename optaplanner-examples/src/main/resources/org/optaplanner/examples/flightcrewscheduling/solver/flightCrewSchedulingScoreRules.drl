@@ -116,13 +116,21 @@ rule "Maximum dayly FDP"
         scoreHolder.addSoftConstraintMatch(kcontext, -$over);
 end
 
+rule "Respect Rest period"
+	when
+		Duty ( code != null, $lack : restLack > 0 )
+	then
+        scoreHolder.addSoftConstraintMatch(kcontext, -$lack);	
+end
+
+/*
 rule "Minimize crew"
 	when
 		Employee ( flightAssignmentSet.size() != 0 )
 	then
         scoreHolder.addSoftConstraintMatch(kcontext, -1);	
 end
-
+*/
 
 //rule "Load balance flight duration total per employee"
 //    when
