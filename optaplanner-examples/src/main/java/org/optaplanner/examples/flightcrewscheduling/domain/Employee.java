@@ -29,11 +29,8 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
-import org.optaplanner.core.api.domain.variable.CustomShadowVariable;
 import org.optaplanner.core.api.domain.variable.InverseRelationShadowVariable;
-import org.optaplanner.core.api.domain.variable.PlanningVariableReference;
 import org.optaplanner.examples.common.domain.AbstractPersistable;
-import org.optaplanner.examples.flightcrewscheduling.domain.solver.FlightAssignmentListener;
 
 @PlanningEntity
 public class Employee extends AbstractPersistable {
@@ -58,7 +55,6 @@ public class Employee extends AbstractPersistable {
     @InverseRelationShadowVariable(sourceVariableName = "employee")
     private SortedSet<FlightAssignment> flightAssignmentSet;
     
-    //@CustomShadowVariable(variableListenerClass=FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass=FlightAssignment.class, variableName="employee") )
     private HashMap<String, Duty> duties = new HashMap<>();
 
     public Employee() {
