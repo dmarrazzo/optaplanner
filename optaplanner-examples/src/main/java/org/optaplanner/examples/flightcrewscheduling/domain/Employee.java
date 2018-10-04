@@ -58,7 +58,7 @@ public class Employee extends AbstractPersistable {
     @InverseRelationShadowVariable(sourceVariableName = "employee")
     private SortedSet<FlightAssignment> flightAssignmentSet;
     
-    @CustomShadowVariable(variableListenerClass=FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass=FlightAssignment.class, variableName="employee") )
+    //@CustomShadowVariable(variableListenerClass=FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass=FlightAssignment.class, variableName="employee") )
     private HashMap<String, Duty> duties = new HashMap<>();
 
     public Employee() {

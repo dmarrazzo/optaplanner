@@ -14,6 +14,7 @@ import org.optaplanner.core.api.domain.entity.PlanningEntity;
 import org.optaplanner.core.api.domain.variable.CustomShadowVariable;
 import org.optaplanner.core.api.domain.variable.PlanningVariableReference;
 import org.optaplanner.examples.common.domain.AbstractPersistable;
+import org.optaplanner.examples.flightcrewscheduling.domain.solver.FlightAssignmentListener;
 
 @PlanningEntity
 public class Duty extends AbstractPersistable {
@@ -28,19 +29,20 @@ public class Duty extends AbstractPersistable {
     private LocalDate date;
     private Employee employee;
 
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
+    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
     private String code;
 
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
+    //@CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
+    @CustomShadowVariable(variableListenerClass=FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass=FlightAssignment.class, variableName="employee") )
     private NavigableSet<FlightAssignment> flightAssignments;
 
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
+    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
     private LocalDateTime start;
 
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
+    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
     private LocalDateTime end;
 
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
+    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
     private LocalDateTime lastFlightArrival;
 
     public Duty() {

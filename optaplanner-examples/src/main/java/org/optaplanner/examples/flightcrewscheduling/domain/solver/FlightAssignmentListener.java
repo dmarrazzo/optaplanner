@@ -32,13 +32,13 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
     @Override
     public void beforeVariableChanged(ScoreDirector scoreDirector,
             FlightAssignment flightAssignment) {
-        removeDuty(scoreDirector, flightAssignment);
+        retractDuty(scoreDirector, flightAssignment);
     }
 
     @Override
     public void afterVariableChanged(ScoreDirector scoreDirector,
             FlightAssignment flightAssignment) {
-        addDuty(scoreDirector, flightAssignment);
+        insertDuty(scoreDirector, flightAssignment);
     }
 
     @Override
@@ -56,40 +56,37 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
     // Update logic
     // ***********************************************
 
-    private void addDuty(ScoreDirector scoreDirector, FlightAssignment flightAssignment) {
+    private void insertDuty(ScoreDirector scoreDirector, FlightAssignment flightAssignment) {
         LocalDate date = flightAssignment.getFlight().getDepartureUTCDate();
 
         if (flightAssignment.getEmployee() != null) {
             Duty duty = flightAssignment.getEmployee().getDutyByDate(date);
 
-            if (duty != null) {
-                //scoreDirector.beforeVariableChanged(flightAssignment.getEmployee(), "duties");
-                scoreDirector.beforeVariableChanged(duty, "flightAssignments");
-                duty.addFlightAssignment(flightAssignment);
-                scoreDirector.afterVariableChanged(duty, "flightAssignments");
-                //scoreDirector.afterVariableChanged(flightAssignment.getEmployee(), "duties");
-                
-                updateDuty(scoreDirector, duty);
-            }
+            // scoreDirector.beforeVariableChanged(flightAssignment.getEmployee(),
+            // "duties");
+            scoreDirector.beforeVariableChanged(duty, "flightAssignments");
+            duty.addFlightAssignment(flightAssignment);
+            scoreDirector.afterVariableChanged(duty, "flightAssignments");
+            // scoreDirector.afterVariableChanged(flightAssignment.getEmployee(), "duties");
+
+            updateDuty(scoreDirector, duty);
         }
     }
 
-
-    private void removeDuty(ScoreDirector scoreDirector, FlightAssignment flightAssignment) {
+    private void retractDuty(ScoreDirector scoreDirector, FlightAssignment flightAssignment) {
         LocalDate date = flightAssignment.getFlight().getDepartureUTCDate();
 
         if (flightAssignment.getEmployee() != null) {
             Duty duty = flightAssignment.getEmployee().getDutyByDate(date);
 
-            if (duty != null) {
-                //scoreDirector.beforeVariableChanged(flightAssignment.getEmployee(), "duties");
-                scoreDirector.beforeVariableChanged(duty, "flightAssignments");
-                duty.removeFlightAssignment(flightAssignment);
-                scoreDirector.afterVariableChanged(duty, "flightAssignments");
-                //scoreDirector.afterVariableChanged(flightAssignment.getEmployee(), "duties");
-    
-                updateDuty(scoreDirector, duty);
-            }
+            // scoreDirector.beforeVariableChanged(flightAssignment.getEmployee(),
+            // "duties");
+            scoreDirector.beforeVariableChanged(duty, "flightAssignments");
+            duty.removeFlightAssignment(flightAssignment);
+            scoreDirector.afterVariableChanged(duty, "flightAssignments");
+            // scoreDirector.afterVariableChanged(flightAssignment.getEmployee(), "duties");
+
+            updateDuty(scoreDirector, duty);
         }
     }
 
@@ -100,16 +97,16 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
             scoreDirector.afterVariableChanged(duty, "code");
 
             scoreDirector.beforeVariableChanged(duty, "start");
-            duty.setStart(null);;
+            duty.setStart(null);
             scoreDirector.afterVariableChanged(duty, "start");
-    
+
             scoreDirector.beforeVariableChanged(duty, "end");
             duty.setEnd(null);
             scoreDirector.afterVariableChanged(duty, "end");
-    
+
             scoreDirector.beforeVariableChanged(duty, "lastFlightArrival");
             duty.setLastFlightArrival(null);
-            scoreDirector.afterVariableChanged(duty, "lastFlightArrival");            
+            scoreDirector.afterVariableChanged(duty, "lastFlightArrival");
         } else {
             // Conventionally FD stand for Flight Duty
             scoreDirector.beforeVariableChanged(duty, "code");
@@ -119,11 +116,11 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
             scoreDirector.beforeVariableChanged(duty, "start");
             duty.updateStart();
             scoreDirector.afterVariableChanged(duty, "start");
-    
+
             scoreDirector.beforeVariableChanged(duty, "end");
             duty.updateEnd();
             scoreDirector.afterVariableChanged(duty, "end");
-    
+
             scoreDirector.beforeVariableChanged(duty, "lastFlightArrival");
             duty.updateLastFlightArrival();
             scoreDirector.afterVariableChanged(duty, "lastFlightArrival");
