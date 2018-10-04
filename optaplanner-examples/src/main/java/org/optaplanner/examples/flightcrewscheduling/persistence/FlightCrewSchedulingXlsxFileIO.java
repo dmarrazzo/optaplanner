@@ -420,15 +420,18 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         private void readFlightListAndFlightAssignmentList() {
             nextSheet("Flights");
             nextRow(false);
-            readHeaderCell("Flight number");
-            readHeaderCell("Departure airport code");
-            readHeaderCell("Departure UTC date time");
-            readHeaderCell("Arrival airport code");
-            readHeaderCell("Arrival UTC date time");
-            readHeaderCell("Aircraft Registration");
-            readHeaderCell("Aircraft type");
-            readHeaderCell("Employee skill requirements");
-            readHeaderCell("Employee assignments");
+            // AF_DAT   AF_AL   AF_NR   AF_DEP  AF_DEST AF_AB_S AF_AN_S AC_REG  AF_FT_KZ
+
+            readHeaderCell("AF_DAT");
+            readHeaderCell("AF_AL");
+            readHeaderCell("AF_NR");
+            readHeaderCell("AF_DEP");
+            readHeaderCell("AF_DEST");
+            readHeaderCell("AF_AB_S");
+            readHeaderCell("AF_AN_S");
+            readHeaderCell("AC_REG");
+            readHeaderCell("AF_FT_KZ");
+            
             List<Flight> flightList = new ArrayList<>(currentSheet.getLastRowNum() - 1);
             List<FlightAssignment> flightAssignmentList = new ArrayList<>(
                     (currentSheet.getLastRowNum() - 1) * 5);
@@ -437,7 +440,11 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             while (nextRow()) {
                 Flight flight = new Flight();
                 flight.setId(id++);
-                flight.setFlightNumber(nextStringCell().getStringCellValue());
+                // skip planned date
+                nextCell();
+                // AF_AL   AF_NR
+                flight.setFlightNumber(nextStringCell().getStringCellValue() + nextStringCell().getStringCellValue());
+                // AF_DEP
                 String departureAirportCode = nextStringCell().getStringCellValue();
                 Airport departureAirport = airportMap.get(departureAirportCode);
                 if (departureAirport == null) {
@@ -447,7 +454,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                             + airportMap.keySet() + ") of the other sheet (Airports).");
                 }
                 flight.setDepartureAirport(departureAirport);
-                flight.setDepartureUTCDateTime(LocalDateTime.parse(nextStringCell().getStringCellValue(), DATE_TIME_FORMATTER));
+                // AF_DEST
                 String arrivalAirportCode = nextStringCell().getStringCellValue();
                 Airport arrivalAirport = airportMap.get(arrivalAirportCode);
                 if (arrivalAirport == null) {
@@ -457,12 +464,18 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                             + ") of the other sheet (Airports).");
                 }
                 flight.setArrivalAirport(arrivalAirport);
-                flight.setArrivalUTCDateTime(LocalDateTime.parse(nextStringCell().getStringCellValue(), DATE_TIME_FORMATTER));
 
+                // AF_AB_S
+                flight.setDepartureUTCDateTime(LocalDateTime.parse(nextStringCell().getStringCellValue(), DATE_TIME_FORMATTER));
+                // AF_AN_S
+                flight.setArrivalUTCDateTime(LocalDateTime.parse(nextStringCell().getStringCellValue(), DATE_TIME_FORMATTER));
+                // AC_REG
                 flight.setAircraftRegistration(nextStringCell().getStringCellValue());
+                // AF_FT_KZ
                 flight.setAircraftType(nextStringCell().getStringCellValue());
 
-                String[] skillNames = nextStringCell().getStringCellValue().split(", ");
+                // By default just CP and FO
+                String[] skillNames = {"CP", "FO" };
                 String[] employeeNames = nextStringCell().getStringCellValue().split(", ");
                 for (int i = 0; i < skillNames.length; i++) {
                     FlightAssignment flightAssignment = new FlightAssignment();
@@ -477,6 +490,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                                 + ") of the other sheet (Skills).");
                     }
                     flightAssignment.setRequiredSkill(requiredSkill);
+                    // for the PoC employee are not relevant
                     if (employeeNames.length > i && !employeeNames[i].isEmpty()) {
                         Employee employee = nameToEmployeeMap.get(employeeNames[i]);
                         if (employee == null) {
