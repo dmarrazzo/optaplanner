@@ -870,16 +870,27 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                         constraintMatchTotal.getConstraintMatchSet());
                 constraintMatchList.sort(Comparator.comparing(ConstraintMatch::getScore));
                 for (ConstraintMatch constraintMatch : constraintMatchList) {
-                    nextRow();
-                    nextCell().setCellValue("    "
-                            + constraintMatch.getJustificationList().stream()
-                                             .filter(o -> o instanceof FlightAssignment)
-                                             .map(o -> ((FlightAssignment) o).getFlight()
-                                                                             .toString())
-                                             .collect(joining(", ")));
-                    nextCell().setCellValue(constraintMatch.getScore().toShortString());
-                    nextCell();
-                    nextCell();
+                    Number[] levelNumbers = constraintMatch.getScore().toLevelNumbers();
+                    boolean notZeroScore = false;
+                    for (Number number : levelNumbers) {
+                        notZeroScore = number.longValue() != 0;
+                        if (notZeroScore) 
+                            break;
+                    }
+                    if (notZeroScore) {
+                        nextRow();
+                        StringBuffer objectMatching = new StringBuffer();
+                        for (Object object : constraintMatch.getJustificationList()) {
+                            if (object instanceof FlightAssignment) {
+                                FlightAssignment flightAssignment = (FlightAssignment) object;
+                                objectMatching.append(" - "
+                                        + flightAssignment.getFlight().toString());
+                            } else
+                                objectMatching.append(" - " + object.toString());
+                        }
+                        nextCell().setCellValue(objectMatching.toString());
+                        nextCell().setCellValue(constraintMatch.getScore().toShortString());
+                    }
                 }
             }
             autoSizeColumnsWithHeader();
