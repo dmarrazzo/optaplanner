@@ -73,6 +73,10 @@ import org.optaplanner.swing.impl.TangoColorFactory;
 
 public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<FlightCrewSolution> {
 
+    private static final String DAY_OFF_MATCH = "OUV|UW|W|V|C";
+    private static final String PRE_ASSIGNED_DUTY_MATCH = "GND|S1E|LSE|ESE";
+    private static final String COMMA_SPLIT = ",\\s+|,";
+
     public static final DateTimeFormatter MILITARY_TIME_FORMATTER = DateTimeFormatter.ofPattern("HHmm", Locale.ENGLISH);
 
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
@@ -93,8 +97,6 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
     private static class FlightCrewSchedulingXlsxReader
             extends AbstractXlsxReader<FlightCrewSolution> {
 
-        private static final String DAY_OFF_MATCH = "OUV|UW|W|V|C";
-        private static final String COMMA_SPLIT = ",\\s+|,";
         private Map<String, Skill> skillMap;
         private Map<String, Employee> nameToEmployeeMap;
         private Map<String, Airport> airportMap;
@@ -138,11 +140,11 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     Duty duty = employee.getDutyByDate(dutyDate);
                     if (duty == null) {
                         duty = new Duty();
+                        duty.setCode("GND");
                         duty.setDate(dutyDate);
                         duty.setEmployee(employee);
                         employee.setDutyByDate(dutyDate, duty);
                     }
-                    duty.setCode("GND");
                     duty.setStart(dutyStart);
                     duty.setEnd(dutyEnd);                    
                 }
@@ -407,13 +409,18 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 nextCell();                    
             }
             // Duty date
-            String dutyDate = nextStringCell().getStringCellValue();
+            String dutyDateStr = nextStringCell().getStringCellValue();
             // Duty code
             String[] dutyCodes = nextStringCell().getStringCellValue().split(COMMA_SPLIT);
             
             for (String dutyCode : dutyCodes) {
                 if (dutyCode.matches(DAY_OFF_MATCH))
-                    employee.getUnavailableDaySet().add(LocalDate.parse(dutyDate, DATE_FORMATTER));
+                    employee.getUnavailableDaySet().add(LocalDate.parse(dutyDateStr, DATE_FORMATTER));
+                else if (dutyCode.matches(PRE_ASSIGNED_DUTY_MATCH)) {
+                    Duty duty = new Duty();
+                    duty.setCode(dutyCode);
+                    employee.setDutyByDate(LocalDate.parse(dutyDateStr, DATE_FORMATTER), duty);
+                }
             }
 
             return newEmp;
@@ -796,9 +803,9 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                                 try {
                                     if (unavailable) {
                                         nextCell(unavailableStyle);
-                                    } else if (duty.getCode().contentEquals("GND") && departureHour == duty.getStart().getHour()) {
+                                    } else if (duty.getCode().matches(PRE_ASSIGNED_DUTY_MATCH) && departureHour == duty.getStart().getHour()) {
                                         int stretch = (int) Duration.between(duty.getStart(), duty.getEnd()).abs().toHours() + 1;
-                                        nextCell(unavailableStyle).setCellValue("GND");
+                                        nextCell(unavailableStyle).setCellValue(duty.getCode());
                                         currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
                                                 currentRowNumber, currentColumnNumber,
                                                 currentColumnNumber + stretch));
