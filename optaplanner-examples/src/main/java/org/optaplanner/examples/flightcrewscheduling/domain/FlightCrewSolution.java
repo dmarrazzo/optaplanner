@@ -64,7 +64,7 @@ public class FlightCrewSolution extends AbstractPersistable {
     }
 
     @ProblemFactCollectionProperty
-    private List<Duty> calculatePotentialDuties() {
+    public List<Duty> calculatePotentialDuties() {
         int days = (int) Period.between(scheduleFirstUTCDate, scheduleLastUTCDate).getDays();
         long id = 0;
         ArrayList<Duty> duties = new ArrayList<>(employeeList.size()*days+1);

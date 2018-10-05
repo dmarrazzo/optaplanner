@@ -42,6 +42,7 @@ import org.optaplanner.core.api.solver.SolverFactory;
 import org.optaplanner.core.impl.domain.solution.descriptor.SolutionDescriptor;
 import org.optaplanner.examples.common.persistence.AbstractXlsxSolutionFileIO;
 import org.optaplanner.examples.flightcrewscheduling.app.FlightCrewSchedulingApp;
+import org.optaplanner.examples.flightcrewscheduling.domain.Duty;
 import org.optaplanner.examples.flightcrewscheduling.domain.Employee;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightAssignment;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewSolution;
@@ -171,12 +172,14 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
                                                                                              + "_"
                                                                                              + f.getIndexInFlight();
                                                                                  }, Function.identity()));
-
+            //Duties
+            nextSheetSolution.calculatePotentialDuties();
+            
             scoreVerifier.assertHardWeight(constraintPackage, constraintName, unassignedScore.getHardScore(), nextSheetSolution);
             scoreVerifier.assertSoftWeight(constraintPackage, constraintName, unassignedScore.getSoftScore(), nextSheetSolution);
 
             nextRow();
-
+            
             while (nextRow()) {
                 String flightNumber = nextStringCell().getStringCellValue();
                 LocalDateTime departureUTCDateTime = LocalDateTime.parse(nextStringCell().getStringCellValue(), DATE_TIME_FORMATTER);
@@ -190,6 +193,14 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
                     flightAssignment.setEmployee(employee);
                     // reverse relationship
                     employee.getFlightAssignmentSet().add(flightAssignment);
+                    
+                    //duty
+                    Duty duty = employee.getDutyByDate(flightAssignment.getFlight().getArrivalUTCDate());
+                    duty.addFlightAssignment(flightAssignment);
+                    duty.updateStart();
+                    duty.updateEnd();
+                    duty.updateLastFlightArrival();
+                    employee.setDutyByDate(flightAssignment.getFlight().getArrivalUTCDate(), duty);
                 }
             }
 

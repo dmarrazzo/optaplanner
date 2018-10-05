@@ -32,7 +32,6 @@ public class Duty extends AbstractPersistable {
     @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
     private String code;
 
-    //@CustomShadowVariable(variableListenerRef = @PlanningVariableReference(entityClass = Employee.class, variableName = "duties"))
     @CustomShadowVariable(variableListenerClass=FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass=FlightAssignment.class, variableName="employee") )
     private NavigableSet<FlightAssignment> flightAssignments;
 
