@@ -61,6 +61,14 @@ rule "Capitan aircraft type qualification"
         scoreHolder.addHardConstraintMatch(kcontext, -50);
 end
 
+rule "First Officer aircraft type qualification"
+    when
+    	$capitan : Skill( name == "FO" )
+        FlightAssignment( $employee : employee != null, $flight: flight )
+        Employee( this == $employee, hasSkill($capitan), !hasAircraftTypeQualification($flight.aircraftType) )
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -50);
+end
 
 rule "Flight conflict"
     when
