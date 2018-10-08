@@ -209,12 +209,16 @@ public class Duty extends AbstractPersistable {
         }
         
         public Duration getMaxFDPBySegment(int segment) {
-            int index = 0;
-            if (segment <= 2)
-                index = 0;
-            else
-                index = segment - 2;
-            return this.maxFDPList[index];
+            try {
+                int index = 0;
+                if (segment <= 2)
+                    index = 0;
+                else
+                    index = segment - 2;
+                return this.maxFDPList[index];                
+            } catch (ArrayIndexOutOfBoundsException e) {
+                return Duration.ofHours(9);
+            }
         }        
     }
 
