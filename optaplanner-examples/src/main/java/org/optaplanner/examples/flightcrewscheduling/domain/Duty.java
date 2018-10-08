@@ -27,6 +27,8 @@ public class Duty extends AbstractPersistable {
     public static MaxFDP[] maxFDPList;
     
     private LocalDate date;
+    
+    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
     private Employee employee;
 
     @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
@@ -72,6 +74,12 @@ public class Duty extends AbstractPersistable {
         lastFlightArrival = flightAssignments.last().getFlight().getArrivalUTCDateTime();
     }
 
+    public void update() {
+        updateStart();
+        updateEnd();
+        updateLastFlightArrival();
+    }
+
     public Optional<Duration> getFlightDutyPeriod() {
         try {
             return Optional.of(Duration.between(start, lastFlightArrival));
@@ -111,7 +119,7 @@ public class Duty extends AbstractPersistable {
             Duration maxFDPDuration = maxFDPValid.getMaxFDPBySegment(segments);
             Duration difference = maxFDPDuration.minus(getFlightDutyPeriod().orElse(Duration.ZERO));
             if (difference.isNegative())
-                return (int) difference.abs().toMinutes();
+                return (int) difference.abs().toMinutes()/10;
             else
                 return 0;            
         } catch (NullPointerException e) {
