@@ -96,12 +96,9 @@ rule "Employee unavailability"
         scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
-rule "Dayoff distance respect"
-    when
-        FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
-    then
-        scoreHolder.addHardConstraintMatch(kcontext, -1);
-end
+// ############################################################################
+// Soft constraints
+// ############################################################################
 
 rule "Intraday flights admitted when the aircraft is the same - legs"
 	when
@@ -110,14 +107,17 @@ rule "Intraday flights admitted when the aircraft is the same - legs"
         	flight.departureUTCDate == $flight.departureUTCDate, 
         	flight.aircraftRegistration != $flight.aircraftRegistration )
 	then
-        scoreHolder.addHardConstraintMatch(kcontext, -1);
+        scoreHolder.addSoftConstraintMatch(kcontext, -1);
 end
 
-// ############################################################################
-// Soft constraints
-// ############################################################################
+rule "Dayoff distance respect"
+    when
+        FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
+    then
+        scoreHolder.addSoftConstraintMatch(kcontext, -1);
+end
 
-rule "Maximum dayly FDP"
+rule "Maximum daily FDP"
 	when
 		Duty ( code == "FD", $over : overMaxFDP )
 	then
