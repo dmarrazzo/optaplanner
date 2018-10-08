@@ -172,11 +172,12 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
                                                                                              + "_"
                                                                                              + f.getIndexInFlight();
                                                                                  }, Function.identity()));
-            //Duties
-            nextSheetSolution.calculatePotentialDuties();
             
             scoreVerifier.assertHardWeight(constraintPackage, constraintName, unassignedScore.getHardScore(), nextSheetSolution);
             scoreVerifier.assertSoftWeight(constraintPackage, constraintName, unassignedScore.getSoftScore(), nextSheetSolution);
+
+            //Duties
+            nextSheetSolution.calculatePotentialDuties();
 
             nextRow();
             
@@ -197,10 +198,7 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
                     //duty
                     Duty duty = employee.getDutyByDate(flightAssignment.getFlight().getArrivalUTCDate());
                     duty.addFlightAssignment(flightAssignment);
-                    duty.updateStart();
-                    duty.updateEnd();
-                    duty.updateLastFlightArrival();
-                    employee.setDutyByDate(flightAssignment.getFlight().getArrivalUTCDate(), duty);
+                    duty.update();
                 }
             }
 
