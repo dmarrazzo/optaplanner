@@ -58,10 +58,11 @@ public class Flight extends AbstractPersistable {
     }
 
     public long overlaps(Flight other) {
-        LocalDateTime startA = departureUTCDateTime.minus(getSignInDuration());
-        LocalDateTime endA = arrivalUTCDateTime.plus(getSignOffDuration());
-        LocalDateTime startB = other.departureUTCDateTime.minus(other.getSignInDuration());
-        LocalDateTime endB = other.arrivalUTCDateTime.plus(other.getSignOffDuration());
+        //disregard sigin - sigoff. Multiple legs does not suffer of such problem 
+        LocalDateTime startA = departureUTCDateTime;
+        LocalDateTime endA = arrivalUTCDateTime;
+        LocalDateTime startB = other.departureUTCDateTime;
+        LocalDateTime endB = other.arrivalUTCDateTime;
 
         Duration between = null;
 
