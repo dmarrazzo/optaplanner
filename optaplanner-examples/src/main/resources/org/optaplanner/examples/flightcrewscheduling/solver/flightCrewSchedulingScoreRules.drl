@@ -49,7 +49,7 @@ rule "Required skill"
     when
         FlightAssignment(employee != null, !getEmployee().hasSkill(getRequiredSkill()))
     then
-        scoreHolder.addHardConstraintMatch(kcontext, -100);
+        scoreHolder.addHardConstraintMatch(kcontext, -15);
 end
 
 rule "Capitan aircraft type qualification"
@@ -58,7 +58,7 @@ rule "Capitan aircraft type qualification"
         FlightAssignment( $employee : employee != null, $flight: flight )
         Employee( this == $employee, hasSkill($capitan), !hasAircraftTypeQualification($flight.aircraftType) )
     then
-        scoreHolder.addHardConstraintMatch(kcontext, -50);
+        scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
 rule "First Officer aircraft type qualification"
@@ -67,7 +67,7 @@ rule "First Officer aircraft type qualification"
         FlightAssignment( $employee : employee != null, $flight: flight )
         Employee( this == $employee, hasSkill($capitan), !hasAircraftTypeQualification($flight.aircraftType) )
     then
-        scoreHolder.addHardConstraintMatch(kcontext, -50);
+        scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
 rule "Flight conflict"
