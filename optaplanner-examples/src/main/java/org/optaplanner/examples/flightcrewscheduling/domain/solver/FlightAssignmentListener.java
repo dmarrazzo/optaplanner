@@ -85,15 +85,13 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
     }
 
     private void updateDuty(ScoreDirector scoreDirector, Duty duty, Employee employee) {
-        if (duty.getFlightAssignments().isEmpty()) {
-            scoreDirector.beforeVariableChanged(duty, "employee");
-            duty.setEmployee(null);
-            scoreDirector.afterVariableChanged(duty, "employee");
-
-            scoreDirector.beforeVariableChanged(duty, "code");
-            duty.setCode(null);
-            scoreDirector.afterVariableChanged(duty, "code");
-
+        // Quick fix for score corruption
+        // don't update if it's a pre-assigned duty
+        if (duty.getCode() != null)
+            return;
+        
+        if (duty.getFlightAssignments().isEmpty() ) {
+            
             scoreDirector.beforeVariableChanged(duty, "start");
             duty.setStart(null);
             scoreDirector.afterVariableChanged(duty, "start");
@@ -106,14 +104,6 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
             duty.setLastFlightArrival(null);
             scoreDirector.afterVariableChanged(duty, "lastFlightArrival");
         } else {
-            scoreDirector.beforeVariableChanged(duty, "employee");
-            duty.setEmployee(employee);
-            scoreDirector.afterVariableChanged(duty, "employee");
-
-            // Conventionally FD stand for Flight Duty
-            scoreDirector.beforeVariableChanged(duty, "code");
-            duty.setCode("FD");
-            scoreDirector.afterVariableChanged(duty, "code");
 
             scoreDirector.beforeVariableChanged(duty, "start");
             duty.updateStart();

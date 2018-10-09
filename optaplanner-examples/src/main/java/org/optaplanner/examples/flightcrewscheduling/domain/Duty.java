@@ -26,13 +26,13 @@ public class Duty extends AbstractPersistable {
     private static final ZoneId GMTp2 = ZoneId.of("GMT+2");
     
     public static MaxFDP[] maxFDPList;
-    
+
+    //Employees, date, code cannot be changed
     private LocalDate date;
-    
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
+
     private Employee employee;
 
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
+    // code is not null for preassigned duties 
     private String code;
 
     @CustomShadowVariable(variableListenerClass=FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass=FlightAssignment.class, variableName="employee") )
@@ -49,6 +49,14 @@ public class Duty extends AbstractPersistable {
 
     public Duty() {
         flightAssignments = new TreeSet<FlightAssignment>(FlightAssignment.DATE_TIME_COMPARATOR);
+    }
+
+    public boolean notEmpty() {
+        return start != null;
+    }
+
+    public boolean isFlightDuty() {
+        return lastFlightArrival != null;
     }
 
     public void addFlightAssignment(FlightAssignment flightAssignment) {

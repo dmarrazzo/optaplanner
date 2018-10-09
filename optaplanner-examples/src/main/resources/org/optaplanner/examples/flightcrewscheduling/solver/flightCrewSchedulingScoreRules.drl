@@ -36,15 +36,6 @@ global HardSoftLongScoreHolder scoreHolder;
 // Hard constraints
 // ############################################################################
 
-/*
-rule "Test Duties"
-	when
-		Employee( flightAssignmentSet!.size() > 1, $duty : duties["2018-07-15"] )
-	then
-		System.out.println($duty);
-end
-*/
-
 rule "Required skill"
     when
         FlightAssignment(employee != null, !getEmployee().hasSkill(getRequiredSkill()))
@@ -82,10 +73,9 @@ rule "Flight conflict"
         scoreHolder.addHardConstraintMatch(kcontext, -$o);
 end
 
-//flightAssignmentSet != null,
 rule "Transfer between two flights"
     when
-        Employee( $cs : connectionStatus)
+        Employee( $cs : connectionStatus, flightAssignmentSet != null, flightAssignmentSet!.size() > 0)
     then
         scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, - $cs.taxiMinutes );
 end
@@ -100,7 +90,7 @@ end
 // ############################################################################
 // Soft constraints
 // ############################################################################
-/*
+
 rule "Intraday flights admitted when the aircraft is the same - legs"
 	when
         FlightAssignment(employee != null, $employee : employee, $flight: flight)
@@ -110,7 +100,7 @@ rule "Intraday flights admitted when the aircraft is the same - legs"
 	then
         scoreHolder.addSoftConstraintMatch(kcontext, -1);
 end
-*/
+
 rule "Dayoff distance respect"
     when
         FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
@@ -127,9 +117,8 @@ end
 
 rule "Respect Rest period"
 	when
-		$employee : Employee()
-		$dutyAfter : Duty ( employee == $employee, code != null)
-		Duty ( employee == $employee, code != null, isDayAfter($dutyAfter), getRestLack($dutyAfter) > 0 )
+		$dutyAfter : Duty ( notEmpty() )
+		Duty ( employee == $dutyAfter.employee, notEmpty(), isDayAfter($dutyAfter), getRestLack($dutyAfter) > 0 )
 	then
         scoreHolder.addSoftConstraintMatch(kcontext, -10);	
 end
