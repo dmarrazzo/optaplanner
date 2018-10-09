@@ -439,6 +439,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     break;
                 } else if (dutyCode.matches(PRE_ASSIGNED_DUTY_MATCH)) {
                     Duty duty = new Duty();
+                    duty.setEmployee(employee);
                     duty.setCode(dutyCode);
                     duty.setDate(dutyDate);
                     employee.setDutyByDate(dutyDate, duty);
@@ -448,7 +449,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     if (flightAssignment!=null) {
                         flightAssignment.setEmployee(employee);
                         Duty duty = new Duty();
-                        duty.setCode("FD");
+                        duty.setEmployee(employee);
                         duty.setDate(dutyDate);
                         duty.addFlightAssignment(flightAssignment);
                         duty.update();
