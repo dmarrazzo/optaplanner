@@ -144,6 +144,16 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             nextRow(false);
             readHeaderCell("Crewmember");
             
+            readPreAssignedDutiesSheet();
+
+            nextSheet("FO duties");
+            nextRow(false);
+            readHeaderCell("Crewmember");
+
+            readPreAssignedDutiesSheet();
+        }
+
+        private void readPreAssignedDutiesSheet() {
             while ( nextRow() ) {
                 String employeeName = nextStringCell().getStringCellValue();
                 String startDateString = nextStringCell().getStringCellValue();
@@ -770,77 +780,79 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 nextRow();
                 nextHeaderCell(employee.getName());
                 nextHeaderCell(employee.getHomeAirport().getCode());
-                
-                // assignments for the employee
-                List<FlightAssignment> employeeAssignmentList = employeeToFlightAssignmentMap.get(employee);
-                if (employeeAssignmentList != null) {
-                    employeeAssignmentList.sort(Comparator.<FlightAssignment, LocalDateTime>comparing(a -> a.getFlight()
-                                                                                                            .getDepartureUTCDateTime())
-                                                          .thenComparing(a -> a.getFlight()
-                                                                               .getArrivalUTCDateTime())
-                                                          .thenComparing(FlightAssignment::getId));
-                    
-                    // for each day in the schedule
-                    for (LocalDate date = firstDate; date.compareTo(lastDate) <= 0; date = date.plusDays(1)) {
-                        boolean unavailable = employee.getUnavailableDaySet().contains(date);
-                        Map<Integer, List<FlightAssignment>> hourToAssignmentListMap = extractHourToAssignmentListMap(employeeAssignmentList, date);
-                        
-                        Duty duty = employee.getDutyByDate(date);
-                        
-                        // for each time slot
-                        for (int departureHour = minimumHour; departureHour <= maximumHour; departureHour++) {
-                            // get the flight assignment list for a departing hour
-                            List<FlightAssignment> flightAssignmentList = hourToAssignmentListMap.get(departureHour);
-                            if (flightAssignmentList != null) {
-                                
-                                nextCell(unavailable ? unavailableStyle
-                                        : filledStyle).setCellValue(flightAssignmentList.stream()
-                                                                                         .map(FlightAssignment::getFlight)
-                                                                                         .map(flight -> flight.getDepartureAirport()
-                                                                                                              .getCode()
-                                                                                                 + MILITARY_TIME_FORMATTER.format(flight.getDepartureUTCTime())
-                                                                                                 + "→"
-                                                                                                 + flight.getArrivalAirport()
-                                                                                                         .getCode()
-                                                                                                 + MILITARY_TIME_FORMATTER.format(flight.getArrivalUTCTime()))
-                                                                                         .collect(joining(", ")));
 
-                                LocalDateTime lastArrival = flightAssignmentList.stream()
-                                                                                .map(a -> a.getFlight()
-                                                                                           .getArrivalUTCDateTime())
-                                                                                .max(Comparator.naturalOrder())
-                                                                                .get();
-                                LocalDateTime firstDeparture = flightAssignmentList.stream()
-                                                                                   .map(a -> a.getFlight()
-                                                                                              .getDepartureUTCDateTime())
-                                                                                   .min(Comparator.naturalOrder())
-                                                                                   .get();
-                                int stretch = (int) Duration.between(firstDeparture, lastArrival).toHours() + 1;
+                // for each day in the schedule
+                for (LocalDate date = firstDate; date.compareTo(lastDate) <= 0; date = date.plusDays(1)) {
+                    boolean unavailable = employee.getUnavailableDaySet().contains(date);
+
+                    Duty duty = employee.getDutyByDate(date);
+
+                    // for each time slot
+                    for (int departureHour = minimumHour; departureHour <= maximumHour; departureHour++) {
+                        // get the flight assignment list for a departing hour
+
+                        // Flight shot
+                        StringBuffer flightSlot = null;
+                        LocalDateTime lastArrival = null;
+                        LocalDateTime firstDeparture = null;
+
+                        if (duty.getFlightAssignments() != null) {
+                            for (FlightAssignment flightAssignment : duty.getFlightAssignments()) {
+                                Flight flight = flightAssignment.getFlight();
+
+                                // if the flight depart at hour
+                                if (flight.getDepartureUTCTime().getHour() == departureHour) {
+                                    // First flight in the time slot
+                                    if (flightSlot == null) {
+                                        firstDeparture = flight.getDepartureUTCDateTime();
+                                        flightSlot = new StringBuffer();
+                                    } else
+                                        flightSlot.append(", ");
+
+                                    flightSlot.append(flight.getFlightNumber() + "-");
+                                    flightSlot.append(flight.getDepartureAirport().getCode());
+                                    flightSlot.append(MILITARY_TIME_FORMATTER.format(flight.getDepartureUTCTime()));
+                                    flightSlot.append("→" + flight.getArrivalAirport().getCode());
+                                    flightSlot.append(MILITARY_TIME_FORMATTER.format(flight.getArrivalUTCTime()));
+                                    lastArrival = flight.getArrivalUTCDateTime();
+                                }
+                            }
+
+                            if (flightSlot != null) {
+                                nextCell(unavailable ? unavailableStyle
+                                        : filledStyle).setCellValue(flightSlot.toString());
+
+                                int stretch = (int) Duration.between(firstDeparture, lastArrival)
+                                                            .toHours()
+                                        + 1;
 
                                 currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
                                         currentRowNumber, currentColumnNumber,
                                         currentColumnNumber + stretch));
-                                if (stretch < 3)
-                                    currentRow.setHeightInPoints(30);
+
+                                currentRow.setHeightInPoints(30);
                                 currentColumnNumber += stretch;
                                 departureHour += stretch;
-                            } else {
-                                try {
-                                    if (unavailable) {
-                                        nextCell(unavailableStyle);
-                                    } else if (duty.getCode().matches(PRE_ASSIGNED_DUTY_MATCH) && departureHour == duty.getStart().getHour()) {
-                                        int stretch = (int) Duration.between(duty.getStart(), duty.getEnd()).abs().toHours() + 1;
-                                        nextCell(unavailableStyle).setCellValue(duty.getCode());
-                                        currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
-                                                currentRowNumber, currentColumnNumber,
-                                                currentColumnNumber + stretch));
-                                    } else {
-                                        nextCell(defaultStyle);                                    
-                                    }
-                                } catch (NullPointerException e) {
-                                    nextCell(defaultStyle);                                                                        
-                                }
                             }
+                        }
+                        
+                        try {
+                            if (unavailable) {
+                                nextCell(unavailableStyle);
+                            } else if (duty.getCode().matches(PRE_ASSIGNED_DUTY_MATCH)
+                                    && departureHour == duty.getStart().getHour()) {
+                                int stretch = (int) Duration.between(duty.getStart(), duty.getEnd())
+                                                            .abs().toHours()
+                                        + 1;
+                                nextCell(unavailableStyle).setCellValue(duty.getCode());
+                                currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
+                                        currentRowNumber, currentColumnNumber,
+                                        currentColumnNumber + stretch));
+                            } else {
+                                nextCell(defaultStyle);
+                            }
+                        } catch (NullPointerException e) {
+                            nextCell(defaultStyle);
                         }
                     }
                 }
@@ -848,38 +860,6 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             setSizeColumnsWithHeader(1500);
             currentSheet.autoSizeColumn(0);
             currentSheet.autoSizeColumn(1);
-        }
-
-        /**
-         * Create a map departure hour and {@link FlightAssignment} in a given date
-         * @param employeeAssignmentList
-         * @param date
-         * @return
-         */
-        private Map<Integer, List<FlightAssignment>> extractHourToAssignmentListMap(
-                List<FlightAssignment> employeeAssignmentList, LocalDate date) {
-            Map<Integer, List<FlightAssignment>> hourToAssignmentListMap = new HashMap<>(
-                    employeeAssignmentList.size());
-            
-            // for each flight assignment for a given employee
-            for (FlightAssignment flightAssignment : employeeAssignmentList) {
-                Flight flight = flightAssignment.getFlight();
-                
-                // if the flight depature date is the date
-                if (flight.getDepartureUTCDate().equals(date)) {
-                    int departureHour = flight.getDepartureUTCTime().getHour();
-
-                    // get the list for the departure hour
-                    List<FlightAssignment> flightAssignmentList = hourToAssignmentListMap.get(departureHour);
-                    if (flightAssignmentList == null) {
-                        flightAssignmentList = new ArrayList<>(8);
-                        hourToAssignmentListMap.put(departureHour, flightAssignmentList);
-                    }
-                    // add the flight assignment to the list
-                    flightAssignmentList.add(flightAssignment);
-                }
-            }
-            return hourToAssignmentListMap;
         }
 
         private void writeScoreView() {
