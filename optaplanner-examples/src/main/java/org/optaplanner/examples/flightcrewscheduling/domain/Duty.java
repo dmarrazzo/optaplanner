@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.NavigableSet;
@@ -128,7 +129,7 @@ public class Duty extends AbstractPersistable {
     }
     
     public boolean isDayAfter(Duty otherDuty) {
-        return date.plusDays(1).compareTo(otherDuty.getDate())==0;
+        return Period.between(getDate(), otherDuty.getDate()).getDays() == 1;
     }
     
     public int getRestLack(Duty otherDuty) {
