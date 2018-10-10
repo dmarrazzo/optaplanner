@@ -113,6 +113,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         private Map<String, Employee> nameToEmployeeMap;
         private Map<String, Airport> airportMap;
         private Map<String, FlightAssignment> mapFlightDateSkillToFlightAssignment;
+        private Map<String, String> mapEmployeeDateToDutyCode;
         private HashMap<String, String[]> qualificationAircraftTypeMap;
         private boolean readSolved;
         
@@ -165,16 +166,15 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     LocalDateTime dutyEnd = LocalDateTime.parse(endDateString, DATE_TIME_FORMATTER);
                     LocalDate dutyDate = dutyStart.toLocalDate();
                     
-                    Duty duty = employee.getDutyByDate(dutyDate);
-                    if (duty == null) {
-                        duty = new Duty();
-                        duty.setCode("???");
-                        duty.setDate(dutyDate);
-                        duty.setEmployee(employee);
-                        employee.setDutyByDate(dutyDate, duty);
-                    }
+                    // Create a new duty. Retrieve duty code from map emp-date/dutyCode (from employee list)
+                    Duty duty = new Duty();
+                    duty.setCode(mapEmployeeDateToDutyCode.get(employeeName+"-"+dutyDate));
+                    duty.setDate(dutyDate);
+                    duty.setEmployee(employee);
                     duty.setStart(dutyStart);
-                    duty.setEnd(dutyEnd);                    
+                    duty.setEnd(dutyEnd);
+                    
+                    employee.setDutyByDate(dutyDate, duty);
                 }
             }
         }
@@ -347,6 +347,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         private void readEmployeeList() {
             List<Employee> employeeList = new ArrayList<>();
             nameToEmployeeMap = new HashMap<>();
+            mapEmployeeDateToDutyCode = new HashMap<>();
 
             // CP Capitans ------
             nextSheet("CP");
@@ -446,14 +447,9 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             for (String dutyCode : dutyCodes) {
                 if (dutyCode.matches(DAY_OFF_MATCH)) {
                     employee.getUnavailableDaySet().add(dutyDate);
-                    break;
                 } else if (dutyCode.matches(PRE_ASSIGNED_DUTY_MATCH)) {
-                    Duty duty = new Duty();
-                    duty.setEmployee(employee);
-                    duty.setCode(dutyCode);
-                    duty.setDate(dutyDate);
-                    employee.setDutyByDate(dutyDate, duty);
-                    break;
+                    // No new duty, add the code in map emp-date/dutyCode, it will be managed later by the preassigned duties
+                    mapEmployeeDateToDutyCode.put(employeeName+"-"+dutyDate, dutyCode);
                 } else if (readSolved){
                     FlightAssignment flightAssignment = mapFlightDateSkillToFlightAssignment.get(dutyCode+"@"+dutyDateStr+"#"+skill);
                     if (flightAssignment!=null) {
