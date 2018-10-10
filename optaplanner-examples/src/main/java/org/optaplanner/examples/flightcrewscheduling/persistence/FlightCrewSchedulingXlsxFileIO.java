@@ -834,10 +834,14 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                                                             .toHours()
                                         + 1;
 
-                                currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
-                                        currentRowNumber, currentColumnNumber,
-                                        currentColumnNumber + stretch));
-
+                                try {
+                                    currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
+                                            currentRowNumber, currentColumnNumber,
+                                            currentColumnNumber + stretch));
+                                } catch (Exception e) {
+                                    // TODO: handle exception
+                                    e.printStackTrace(System.err);
+                                }
                                 currentRow.setHeightInPoints(30);
                                 currentColumnNumber += stretch;
                                 departureHour += stretch-1;
