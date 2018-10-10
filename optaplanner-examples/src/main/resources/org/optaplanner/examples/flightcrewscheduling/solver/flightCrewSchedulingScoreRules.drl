@@ -98,7 +98,7 @@ rule "Intraday flights admitted when the aircraft is the same - legs"
         	flight.departureUTCDate == $flight.departureUTCDate, 
         	flight.aircraftRegistration != $flight.aircraftRegistration )
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1);
+        scoreHolder.addSoftConstraintMatch(kcontext, -5);
 end
 
 rule "Dayoff distance respect"
@@ -117,10 +117,26 @@ end
 
 rule "Respect Rest period"
 	when
-		$dutyAfter : Duty ( notEmpty() )
-		Duty ( employee == $dutyAfter.employee, notEmpty(), isDayAfter($dutyAfter), getRestLack($dutyAfter) > 0 )
+		$dutyAfter : Duty ( notEmpty(), $rightId : id )
+		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), isDayAfter($dutyAfter), getRestLack($dutyAfter) > 0 )
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -10);	
+        scoreHolder.addSoftConstraintMatch(kcontext, -100);	
+end
+
+rule "Start Duty in Home Base"
+	when
+		$employee : Employee ( $homeAirport : homeAirport )
+		Duty ( isFlightDuty(), employee == $employee, flightAssignments.first().getFlight().getDepartureAirport() != $homeAirport )
+	then
+        scoreHolder.addSoftConstraintMatch(kcontext, -1);	
+end
+
+rule "Finish Duty in Home Base"
+	when
+		$employee : Employee ( $homeAirport : homeAirport )
+		Duty ( isFlightDuty(), employee == $employee, flightAssignments.last().getFlight().getArrivalAirport() != $homeAirport )
+	then
+        scoreHolder.addSoftConstraintMatch(kcontext, -1);	
 end
 
 /*
