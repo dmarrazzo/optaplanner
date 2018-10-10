@@ -804,7 +804,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                         LocalDateTime lastArrival = null;
                         LocalDateTime firstDeparture = null;
 
-                        if (duty.getFlightAssignments() != null) {
+                        // if flight duty
+                        if (duty.isFlightDuty()) {
                             for (FlightAssignment flightAssignment : duty.getFlightAssignments()) {
                                 Flight flight = flightAssignment.getFlight();
 
@@ -831,35 +832,30 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                                         : filledStyle).setCellValue(flightSlot.toString());
 
                                 int stretch = (int) Duration.between(firstDeparture, lastArrival)
-                                                            .toHours()
-                                        + 1;
+                                                            .toHours();
 
-                                try {
-                                    currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
-                                            currentRowNumber, currentColumnNumber,
+                                if (stretch > 0)
+                                    currentSheet.addMergedRegion(new CellRangeAddress(
+                                            currentRowNumber, currentRowNumber, currentColumnNumber,
                                             currentColumnNumber + stretch));
-                                } catch (Exception e) {
-                                    // TODO: handle exception
-                                    e.printStackTrace(System.err);
-                                }
                                 currentRow.setHeightInPoints(30);
-                                currentColumnNumber += stretch;
-                                departureHour += stretch-1;
+                                currentColumnNumber += stretch - 1;
+                                departureHour += stretch;
                             }
                         }
-                        
+
                         try {
                             if (unavailable) {
                                 nextCell(unavailableStyle);
                             } else if (duty.getCode().matches(PRE_ASSIGNED_DUTY_MATCH)
                                     && departureHour == duty.getStart().getHour()) {
                                 int stretch = (int) Duration.between(duty.getStart(), duty.getEnd())
-                                                            .abs().toHours()
-                                        + 1;
+                                                            .abs().toHours();
                                 nextCell(unavailableStyle).setCellValue(duty.getCode());
-                                currentSheet.addMergedRegion(new CellRangeAddress(currentRowNumber,
-                                        currentRowNumber, currentColumnNumber,
-                                        currentColumnNumber + stretch));
+                                if (stretch > 0)
+                                    currentSheet.addMergedRegion(new CellRangeAddress(
+                                            currentRowNumber, currentRowNumber, currentColumnNumber,
+                                            currentColumnNumber + stretch));
                             } else {
                                 nextCell(defaultStyle);
                             }
