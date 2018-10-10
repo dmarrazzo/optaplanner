@@ -78,11 +78,11 @@ public class Flight extends AbstractPersistable {
     }
 
     public Duration getSignInDuration() {
-        return Duration.ofMinutes(60);
+        return Duration.ofMinutes(30);
     }
 
     public Duration getSignOffDuration() {
-        return Duration.ofMinutes(60);
+        return Duration.ofMinutes(30);
     }
 
     @Override
