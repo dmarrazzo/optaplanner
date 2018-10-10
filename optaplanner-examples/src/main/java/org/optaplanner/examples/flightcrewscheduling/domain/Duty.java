@@ -173,8 +173,8 @@ public class Duty extends AbstractPersistable {
     
     @Override
     public String toString() {
-        return String.format("Duty [code=%s, date=%s, flightAssignments=%s, FDP=%d]", code, date, flightAssignments, getFlightDutyPeriod().orElse(Duration.ZERO)
-                                                                                                                                          .toMinutes());
+        return String.format("Duty [code=%s, date=%s, emp=%s, flightAssignments=%s, FDP=%d]", code, date, employee.getName(), flightAssignments, getFlightDutyPeriod().orElse(Duration.ZERO)
+                                                                                                                                                                      .toMinutes());
     }
     
     // ************************************************************************
