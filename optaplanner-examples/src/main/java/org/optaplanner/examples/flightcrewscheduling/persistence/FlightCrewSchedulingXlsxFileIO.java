@@ -165,16 +165,19 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     LocalDateTime dutyStart = LocalDateTime.parse(startDateString, DATE_TIME_FORMATTER);
                     LocalDateTime dutyEnd = LocalDateTime.parse(endDateString, DATE_TIME_FORMATTER);
                     LocalDate dutyDate = dutyStart.toLocalDate();
+                    Duty duty = employee.getDutyByDate(dutyDate);
                     
-                    // Create a new duty. Retrieve duty code from map emp-date/dutyCode (from employee list)
-                    Duty duty = new Duty();
-                    duty.setCode(mapEmployeeDateToDutyCode.get(employeeName+"-"+dutyDate));
-                    duty.setDate(dutyDate);
-                    duty.setEmployee(employee);
-                    duty.setStart(dutyStart);
-                    duty.setEnd(dutyEnd);
-                    
-                    employee.setDutyByDate(dutyDate, duty);
+                    // TODO: new model to manage multiple activity for a duty
+                    if (duty == null) {
+                        // Create a new duty. Retrieve duty code from map emp-date/dutyCode (from employee list)
+                        duty = new Duty();
+                        duty.setCode(mapEmployeeDateToDutyCode.get(employeeName+"-"+dutyDate));
+                        duty.setDate(dutyDate);
+                        duty.setEmployee(employee);
+                        duty.setStart(dutyStart);
+                        duty.setEnd(dutyEnd);
+                        employee.setDutyByDate(dutyDate, duty);
+                    }                    
                 }
             }
         }
@@ -452,14 +455,23 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     mapEmployeeDateToDutyCode.put(employeeName+"-"+dutyDate, dutyCode);
                 } else if (readSolved){
                     FlightAssignment flightAssignment = mapFlightDateSkillToFlightAssignment.get(dutyCode+"@"+dutyDateStr+"#"+skill);
-                    if (flightAssignment!=null) {
+
+                    if (flightAssignment != null) {
                         flightAssignment.setEmployee(employee);
-                        Duty duty = new Duty();
-                        duty.setEmployee(employee);
-                        duty.setDate(dutyDate);
-                        duty.addFlightAssignment(flightAssignment);
-                        duty.update();
-                        employee.setDutyByDate(LocalDate.parse(dutyDateStr, DATE_FORMATTER), duty);
+
+                        Duty duty = employee.getDutyByDate(dutyDate);
+
+                        if (duty != null) {
+                            duty.addFlightAssignment(flightAssignment);
+                            duty.update();
+                        } else {
+                            duty = new Duty();
+                            duty.setEmployee(employee);
+                            duty.setDate(dutyDate);
+                            duty.addFlightAssignment(flightAssignment);
+                            duty.update();
+                            employee.setDutyByDate(dutyDate, duty);
+                        }
                     }
                 }
             }
@@ -828,7 +840,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
                                 currentRow.setHeightInPoints(30);
                                 currentColumnNumber += stretch;
-                                departureHour += stretch;
+                                departureHour += stretch-1;
                             }
                         }
                         
@@ -851,6 +863,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                             nextCell(defaultStyle);
                         }
                     }
+                    // end for each time slot
                 }
             }
             setSizeColumnsWithHeader(1500);
