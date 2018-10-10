@@ -159,7 +159,7 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
             nextSheetSolution = solutionCloner.cloneSolution(initialSolution);
 
             Map<String, Employee> employeeMap = nextSheetSolution.getEmployeeList().stream()
-                                                            .collect(Collectors.toMap(Employee::getName, Function.identity()));
+                                                                 .collect(Collectors.toMap(Employee::getName, Function.identity()));
             
             Map<String, FlightAssignment> flightAssignmentMap = nextSheetSolution.getFlightAssignmentList()
                                                                                  .stream()
