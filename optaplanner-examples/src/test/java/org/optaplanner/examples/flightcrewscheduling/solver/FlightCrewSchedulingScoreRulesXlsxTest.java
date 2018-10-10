@@ -25,10 +25,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -84,6 +84,7 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
         try (InputStream in = new BufferedInputStream(new FileInputStream(testFile))) {
             XSSFWorkbook workbook = new XSSFWorkbook(in);
             FlightCrewSolution initialSolution = new FlightCrewSchedulingXlsxFileIO().read(testFile);
+            initialSolution.calculatePotentialDuties();
 
             TestFlightCrewScoreRulesReader testFileReader = new TestFlightCrewScoreRulesReader(
                     workbook, initialSolution);
@@ -158,6 +159,25 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
 
             nextSheetSolution = solutionCloner.cloneSolution(initialSolution);
 
+            // clone Duties
+            for (Employee employee : nextSheetSolution.getEmployeeList()) {
+                HashMap<String,Duty> duties = employee.getDuties();
+                HashMap<String,Duty> clonedDuties = new HashMap<>(); 
+                for (String dutyKey : duties.keySet()) {
+                    Duty duty = duties.get(dutyKey);
+                    Duty clonedDuty = new Duty();
+                    clonedDuty.setId(duty.getId());
+                    clonedDuty.setCode(duty.getCode());
+                    clonedDuty.setDate(duty.getDate());
+                    clonedDuty.setEmployee(duty.getEmployee());
+                    clonedDuty.setStart(duty.getStart());
+                    clonedDuty.setEnd(duty.getEnd());
+                    clonedDuty.setLastFlightArrival(duty.getLastFlightArrival());
+                    clonedDuties.put(dutyKey, clonedDuty);
+                }
+                employee.setDuties(clonedDuties);
+            }
+            
             Map<String, Employee> employeeMap = nextSheetSolution.getEmployeeList().stream()
                                                                  .collect(Collectors.toMap(Employee::getName, Function.identity()));
             
@@ -175,9 +195,6 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
             
             scoreVerifier.assertHardWeight(constraintPackage, constraintName, unassignedScore.getHardScore(), nextSheetSolution);
             scoreVerifier.assertSoftWeight(constraintPackage, constraintName, unassignedScore.getSoftScore(), nextSheetSolution);
-
-            //Duties
-            nextSheetSolution.calculatePotentialDuties();
 
             nextRow();
             

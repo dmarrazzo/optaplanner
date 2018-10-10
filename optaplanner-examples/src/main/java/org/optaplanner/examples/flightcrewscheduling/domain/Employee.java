@@ -266,4 +266,8 @@ public class Employee extends AbstractPersistable {
     public HashMap<String,Duty> getDuties() {
         return duties;
     }
+
+    public void setDuties(HashMap<String, Duty> clonedDuties) {
+        duties = clonedDuties;
+    }
 }
