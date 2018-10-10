@@ -110,7 +110,7 @@ end
 
 rule "Maximum daily FDP"
 	when
-		Duty ( code == "FD", $over : overMaxFDP )
+		Duty ( isFlightDuty(), $over : overMaxFDP )
 	then
         scoreHolder.addSoftConstraintMatch(kcontext, -$over);
 end
