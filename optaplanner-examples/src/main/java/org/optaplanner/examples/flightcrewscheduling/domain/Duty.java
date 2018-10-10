@@ -142,7 +142,7 @@ public class Duty extends AbstractPersistable {
     
     public int getRestLack(Duty otherDuty) {
         // if this is not a Flight Duty or the other duty is empty
-        if (flightAssignments.size() == 0 || otherDuty == null || otherDuty.getCode() == null)
+        if (!isFlightDuty() || otherDuty == null || !otherDuty.notEmpty())
             return 0;
         else {
             Duration rest = Duration.between(end, otherDuty.getStart());
