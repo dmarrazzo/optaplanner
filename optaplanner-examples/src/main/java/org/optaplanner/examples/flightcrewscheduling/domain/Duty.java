@@ -111,7 +111,29 @@ public class Duty extends AbstractPersistable {
             return 0;
         }
     }
+    
+    public int getOverlap() {
+        if (! isFlightDuty() || code == null)
+            return 0;
+        
+        LocalDateTime startA = getPreAssignedDutyStart();
+        LocalDateTime endA = getPreAssignedDutyEnd();
+        LocalDateTime startB = getFlightStart();
+        LocalDateTime endB = getFlightEnd();
 
+        Duration between = null;
+
+        // if there is an overlap
+        if (startA.isBefore(endB) && startB.isBefore(endA)) {
+            if (startA.isBefore(startB))
+                between = Duration.between(startB, endA);
+            else
+                between = Duration.between(startA, endB);
+            return (int) between.toMinutes();
+        } else
+            return 0;
+    }
+    
     /**
      * 
      * @return the number of minutes exceeding the Maximum Daily FDP

@@ -94,6 +94,13 @@ rule "Ground duties cannot accept Flight Duties"
         scoreHolder.addHardConstraintMatch(kcontext, -1);	
 end
 
+rule "Standby duties cannot overlap Flight Duties"
+	when
+		Duty ( code != null, code != "GND", overlap > 0 )
+	then
+        scoreHolder.addHardConstraintMatch(kcontext, -1);	
+end
+
 // ############################################################################
 // Soft constraints
 // ############################################################################
