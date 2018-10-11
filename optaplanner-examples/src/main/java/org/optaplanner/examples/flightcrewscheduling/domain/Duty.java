@@ -154,16 +154,15 @@ public class Duty extends AbstractPersistable {
             if (taxiTimeInMinutesTo == null)
                 inconvenience += 10;
             else
-                inconvenience += taxiTimeInMinutesTo / 100;
+                inconvenience += taxiTimeInMinutesTo / 50;
         }
 
         if (employee.getHomeAirport() != arrivalAirport) {
             Long taxiTimeInMinutesTo = arrivalAirport.getTaxiTimeInMinutesTo(employee.getHomeAirport());
-            inconvenience += 10;
             if (taxiTimeInMinutesTo == null)
                 inconvenience += 10;
             else
-                inconvenience += taxiTimeInMinutesTo / 100;
+                inconvenience += taxiTimeInMinutesTo / 50;
         }
 
         return inconvenience;
