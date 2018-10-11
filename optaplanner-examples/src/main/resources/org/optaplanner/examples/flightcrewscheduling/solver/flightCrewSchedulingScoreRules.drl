@@ -73,13 +73,6 @@ rule "Flight conflict"
         scoreHolder.addHardConstraintMatch(kcontext, -$o);
 end
 
-rule "Transfer between two flights"
-    when
-        Employee( $cs : connectionStatus, flightAssignmentSet != null, flightAssignmentSet!.size() > 0)
-    then
-        scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, - $cs.taxiMinutes );
-end
-
 rule "Employee unavailability"
     when
         FlightAssignment(employee != null, !getEmployee().isAvailable(getFlight().getDepartureUTCDate()))
@@ -99,6 +92,17 @@ rule "Standby duties cannot overlap Flight Duties"
 		Duty ( code != null, code != "GND", overlap > 0 )
 	then
         scoreHolder.addHardConstraintMatch(kcontext, -1);	
+end
+
+// ############################################################################
+// Mixed constraints
+// ############################################################################
+
+rule "Transfer between two flights"
+    when
+        Employee( $cs : connectionStatus, flightAssignmentSet != null, flightAssignmentSet!.size() > 0)
+    then
+        scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, - $cs.taxiMinutes );
 end
 
 // ############################################################################
@@ -137,20 +141,11 @@ rule "Respect Rest period"
         scoreHolder.addSoftConstraintMatch(kcontext, -100);	
 end
 
-rule "Start Duty in Home Base"
+rule "Home Base Convenience"
 	when
-		$employee : Employee ( $homeAirport : homeAirport )
-		Duty ( isFlightDuty(), employee == $employee, flightAssignments.first().getFlight().getDepartureAirport() != $homeAirport )
+		Duty ( isFlightDuty(), $inconvenience : getHomeBaseInconvenience() )
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1);	
-end
-
-rule "Finish Duty in Home Base"
-	when
-		$employee : Employee ( $homeAirport : homeAirport )
-		Duty ( isFlightDuty(), employee == $employee, flightAssignments.last().getFlight().getArrivalAirport() != $homeAirport )
-	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1);	
+        scoreHolder.addSoftConstraintMatch(kcontext, -$inconvenience);	
 end
 
 /*

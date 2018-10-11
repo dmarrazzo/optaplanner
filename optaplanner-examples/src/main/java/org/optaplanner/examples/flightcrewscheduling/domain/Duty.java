@@ -24,21 +24,21 @@ public class Duty extends AbstractPersistable {
 
     private static final ZoneId GMT = ZoneId.of("GMT");
     private static final ZoneId GMTp2 = ZoneId.of("GMT+2");
-    
+
     public static MaxFDP[] maxFDPList;
 
-    //Employees, date, code cannot be changed
+    // Employees, date, code cannot be changed
     private LocalDate date;
 
     private Employee employee;
 
-    // code is not null for preassigned duties 
+    // code is not null for preassigned duties
     private String code;
 
     private LocalDateTime preAssignedDutyStart;
     private LocalDateTime preAssignedDutyEnd;
 
-    @CustomShadowVariable(variableListenerClass=FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass=FlightAssignment.class, variableName="employee") )
+    @CustomShadowVariable(variableListenerClass = FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass = FlightAssignment.class, variableName = "employee"))
     private NavigableSet<FlightAssignment> flightAssignments;
 
     public Duty() {
@@ -46,11 +46,11 @@ public class Duty extends AbstractPersistable {
     }
 
     public boolean notEmpty() {
-        return code != null && flightAssignments.size()>0;
+        return code != null && flightAssignments.size() > 0;
     }
 
     public boolean isFlightDuty() {
-        return flightAssignments.size()>0;
+        return flightAssignments.size() > 0;
     }
 
     public void addFlightAssignment(FlightAssignment flightAssignment) {
@@ -63,8 +63,9 @@ public class Duty extends AbstractPersistable {
 
     public LocalDateTime getStart() {
         // TODO: taxi time ??
-        if(isFlightDuty()) {
-            LocalDateTime departureUTCDateTime = flightAssignments.first().getFlight().getDepartureUTCDateTime();
+        if (isFlightDuty()) {
+            LocalDateTime departureUTCDateTime = flightAssignments.first().getFlight()
+                                                                  .getDepartureUTCDateTime();
             Duration signInDuration = flightAssignments.first().getFlight().getSignInDuration();
 
             if (preAssignedDutyStart == null || departureUTCDateTime.isBefore(preAssignedDutyStart))
@@ -75,8 +76,9 @@ public class Duty extends AbstractPersistable {
 
     public LocalDateTime getEnd() {
         // TODO: taxi time ??
-        if(isFlightDuty()) {
-            LocalDateTime arrivalUTCDateTime = flightAssignments.last().getFlight().getArrivalUTCDateTime();
+        if (isFlightDuty()) {
+            LocalDateTime arrivalUTCDateTime = flightAssignments.last().getFlight()
+                                                                .getArrivalUTCDateTime();
             Duration signOffDuration = flightAssignments.last().getFlight().getSignOffDuration();
 
             if (preAssignedDutyStart == null || arrivalUTCDateTime.isAfter(preAssignedDutyStart))
@@ -84,7 +86,7 @@ public class Duty extends AbstractPersistable {
         }
         return preAssignedDutyEnd;
     }
-    
+
     public LocalDateTime getFlightStart() {
         // TODO: taxi time ??
         return flightAssignments.first().getFlight().getDepartureUTCDateTime();
@@ -94,10 +96,11 @@ public class Duty extends AbstractPersistable {
         // TODO: taxi time ??
         return flightAssignments.last().getFlight().getArrivalUTCDateTime();
     }
-    
+
     public Optional<Duration> getFlightDutyPeriod() {
         try {
-            //Flight duty period has to consider the signin but not the signoff (now we are considering even preassigned duty in getStart)
+            // Flight duty period has to consider the signin but not the signoff (now we are
+            // considering even preassigned duty in getStart)
             return Optional.of(Duration.between(getStart(), getFlightEnd()));
         } catch (NullPointerException e) {
             return Optional.empty();
@@ -111,11 +114,11 @@ public class Duty extends AbstractPersistable {
             return 0;
         }
     }
-    
+
     public int getOverlap() {
-        if (! isFlightDuty() || code == null)
+        if (!isFlightDuty() || code == null)
             return 0;
-        
+
         LocalDateTime startA = getPreAssignedDutyStart();
         LocalDateTime endA = getPreAssignedDutyEnd();
         LocalDateTime startB = getFlightStart();
@@ -133,7 +136,39 @@ public class Duty extends AbstractPersistable {
         } else
             return 0;
     }
-    
+
+    /**
+     * 
+     * @return a weight of the Home Base reachability max 20 = not reachable
+     */
+    public int getHomeBaseInconvenience() {
+        if (!isFlightDuty())
+            return 0;
+
+        int inconvenience = 0;
+        Airport departureAirport = flightAssignments.first().getFlight().getDepartureAirport();
+        Airport arrivalAirport = flightAssignments.last().getFlight().getArrivalAirport();
+
+        if (employee.getHomeAirport() != departureAirport) {
+            Long taxiTimeInMinutesTo = departureAirport.getTaxiTimeInMinutesTo(employee.getHomeAirport());
+            if (taxiTimeInMinutesTo == null)
+                inconvenience += 10;
+            else
+                inconvenience += taxiTimeInMinutesTo / 100;
+        }
+
+        if (employee.getHomeAirport() != arrivalAirport) {
+            Long taxiTimeInMinutesTo = arrivalAirport.getTaxiTimeInMinutesTo(employee.getHomeAirport());
+            inconvenience += 10;
+            if (taxiTimeInMinutesTo == null)
+                inconvenience += 10;
+            else
+                inconvenience += taxiTimeInMinutesTo / 100;
+        }
+
+        return inconvenience;
+    }
+
     /**
      * 
      * @return the number of minutes exceeding the Maximum Daily FDP
@@ -141,11 +176,11 @@ public class Duty extends AbstractPersistable {
     public int getOverMaxFDP() {
         try {
             int segments = getFlightAssignments().size();
-            
-            if (segments == 0) 
+
+            if (segments == 0)
                 return 0;
             MaxFDP maxFDPValid = maxFDPList[0];
-            
+
             for (MaxFDP maxFDP : maxFDPList) {
                 // TODO: use employee acclimatization Time Zone
                 ZonedDateTime startZ = ZonedDateTime.of(getFlightStart(), GMT);
@@ -157,18 +192,18 @@ public class Duty extends AbstractPersistable {
             Duration maxFDPDuration = maxFDPValid.getMaxFDPBySegment(segments);
             Duration difference = maxFDPDuration.minus(getFlightDutyPeriod().orElse(Duration.ZERO));
             if (difference.isNegative())
-                return (int) difference.abs().toMinutes()/10;
+                return (int) difference.abs().toMinutes() / 10;
             else
-                return 0;            
+                return 0;
         } catch (NullPointerException e) {
             return 0;
         }
     }
-    
+
     public boolean isDayAfter(Duty otherDuty) {
         return Period.between(getDate(), otherDuty.getDate()).getDays() == 1;
     }
-    
+
     public int getRestLack(Duty otherDuty) {
         // TODO: manage mixed duty
 
@@ -180,32 +215,33 @@ public class Duty extends AbstractPersistable {
             Duration dutyDuration = Duration.between(getStart(), getEnd());
             Duration minimumRest = null;
 
-            //if the duty end in home base
-            if (flightAssignments.last().getFlight().getArrivalAirport() == employee.getHomeAirport()) {
-                if (dutyDuration.toHours()>12)
+            // if the duty end in home base
+            if (flightAssignments.last().getFlight()
+                                 .getArrivalAirport() == employee.getHomeAirport()) {
+                if (dutyDuration.toHours() > 12)
                     minimumRest = dutyDuration;
-                else 
+                else
                     minimumRest = Duration.ofHours(12);
             } else {
-                if (dutyDuration.toHours()>10)
+                if (dutyDuration.toHours() > 10)
                     minimumRest = dutyDuration;
-                else 
-                    minimumRest = Duration.ofHours(10);                
+                else
+                    minimumRest = Duration.ofHours(10);
             }
-        
-            if (rest.compareTo(minimumRest)>0)
+
+            if (rest.compareTo(minimumRest) > 0)
                 return 0;
             else
                 return (int) minimumRest.minus(rest).toMinutes();
         }
     }
-    
+
     @Override
     public String toString() {
         return String.format("Duty [code=%s, date=%s, emp=%s, flightAssignments=%s, FDP=%d]", code, date, employee.getName(), flightAssignments, getFlightDutyPeriod().orElse(Duration.ZERO)
                                                                                                                                                                       .toMinutes());
     }
-    
+
     // ************************************************************************
     // Inner class
     // ************************************************************************
@@ -220,19 +256,23 @@ public class Duty extends AbstractPersistable {
                 return false;
             return start.compareTo(time) <= 0 && end.compareTo(time) >= 0;
         }
-        
+
         public LocalTime getStart() {
             return start;
         }
+
         public void setStart(LocalTime start) {
             this.start = start;
         }
+
         public LocalTime getEnd() {
             return end;
         }
+
         public void setEnd(LocalTime end) {
             this.end = end;
         }
+
         public Duration[] getMaxFDPList() {
             return maxFDPList;
         }
@@ -243,9 +283,9 @@ public class Duty extends AbstractPersistable {
                 index = 0;
             else
                 index = segment - 2;
-            this.maxFDPList[index]=maxFDP;
+            this.maxFDPList[index] = maxFDP;
         }
-        
+
         public Duration getMaxFDPBySegment(int segment) {
             try {
                 int index = 0;
@@ -253,11 +293,11 @@ public class Duty extends AbstractPersistable {
                     index = 0;
                 else
                     index = segment - 2;
-                return this.maxFDPList[index];                
+                return this.maxFDPList[index];
             } catch (ArrayIndexOutOfBoundsException e) {
                 return Duration.ofHours(9);
             }
-        }        
+        }
     }
 
     // ************************************************************************
