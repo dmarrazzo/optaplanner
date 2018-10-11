@@ -35,28 +35,22 @@ public class Duty extends AbstractPersistable {
     // code is not null for preassigned duties 
     private String code;
 
+    private LocalDateTime preAssignedDutyStart;
+    private LocalDateTime preAssignedDutyEnd;
+
     @CustomShadowVariable(variableListenerClass=FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass=FlightAssignment.class, variableName="employee") )
     private NavigableSet<FlightAssignment> flightAssignments;
-
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
-    private LocalDateTime start;
-
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
-    private LocalDateTime end;
-
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
-    private LocalDateTime lastFlightArrival;
 
     public Duty() {
         flightAssignments = new TreeSet<FlightAssignment>(FlightAssignment.DATE_TIME_COMPARATOR);
     }
 
     public boolean notEmpty() {
-        return start != null;
+        return code != null && flightAssignments.size()>0;
     }
 
     public boolean isFlightDuty() {
-        return lastFlightArrival != null;
+        return flightAssignments.size()>0;
     }
 
     public void addFlightAssignment(FlightAssignment flightAssignment) {
@@ -67,31 +61,44 @@ public class Duty extends AbstractPersistable {
         flightAssignments.remove(flightAssignment);
     }
 
-    public void updateStart() {
-        // TODO: taxi time
-        Flight firstFlight = flightAssignments.first().getFlight();
-        start = firstFlight.getDepartureUTCDateTime().minus(firstFlight.getSignInDuration());
+    public LocalDateTime getStart() {
+        // TODO: taxi time ??
+        if(isFlightDuty()) {
+            LocalDateTime departureUTCDateTime = flightAssignments.first().getFlight().getDepartureUTCDateTime();
+            Duration signInDuration = flightAssignments.first().getFlight().getSignInDuration();
+
+            if (preAssignedDutyStart == null || departureUTCDateTime.isBefore(preAssignedDutyStart))
+                return departureUTCDateTime.minus(signInDuration);
+        }
+        return preAssignedDutyStart;
     }
 
-    public void updateEnd() {
-        // TODO: taxi time
-        Flight lastFlight = flightAssignments.last().getFlight();
-        end = lastFlight.getArrivalUTCDateTime().plus(lastFlight.getSignOffDuration());
+    public LocalDateTime getEnd() {
+        // TODO: taxi time ??
+        if(isFlightDuty()) {
+            LocalDateTime arrivalUTCDateTime = flightAssignments.last().getFlight().getArrivalUTCDateTime();
+            Duration signOffDuration = flightAssignments.last().getFlight().getSignOffDuration();
+
+            if (preAssignedDutyStart == null || arrivalUTCDateTime.isAfter(preAssignedDutyStart))
+                return arrivalUTCDateTime.plus(signOffDuration);
+        }
+        return preAssignedDutyEnd;
+    }
+    
+    public LocalDateTime getFlightStart() {
+        // TODO: taxi time ??
+        return flightAssignments.first().getFlight().getDepartureUTCDateTime();
     }
 
-    public void updateLastFlightArrival() {
-        lastFlightArrival = flightAssignments.last().getFlight().getArrivalUTCDateTime();
+    public LocalDateTime getFlightEnd() {
+        // TODO: taxi time ??
+        return flightAssignments.last().getFlight().getArrivalUTCDateTime();
     }
-
-    public void update() {
-        updateStart();
-        updateEnd();
-        updateLastFlightArrival();
-    }
-
+    
     public Optional<Duration> getFlightDutyPeriod() {
         try {
-            return Optional.of(Duration.between(start, lastFlightArrival));
+            //Flight duty period has to consider the signin but not the signoff (now we are considering even preassigned duty in getStart)
+            return Optional.of(Duration.between(getStart(), getFlightEnd()));
         } catch (NullPointerException e) {
             return Optional.empty();
         }
@@ -99,7 +106,7 @@ public class Duty extends AbstractPersistable {
 
     public long getFlightDutyPeriodMin() {
         try {
-            return Duration.between(start, lastFlightArrival).toMinutes();
+            return Duration.between(getFlightStart(), getFlightEnd()).toMinutes();
         } catch (NullPointerException e) {
             return 0;
         }
@@ -119,7 +126,7 @@ public class Duty extends AbstractPersistable {
             
             for (MaxFDP maxFDP : maxFDPList) {
                 // TODO: use employee acclimatization Time Zone
-                ZonedDateTime startZ = ZonedDateTime.of(start, GMT);
+                ZonedDateTime startZ = ZonedDateTime.of(getFlightStart(), GMT);
                 if (maxFDP.match(startZ.withZoneSameInstant(GMTp2).toLocalTime())) {
                     maxFDPValid = maxFDP;
                     break;
@@ -141,14 +148,14 @@ public class Duty extends AbstractPersistable {
     }
     
     public int getRestLack(Duty otherDuty) {
+        // TODO: manage mixed duty
+
         // if this is not a Flight Duty or the other duty is empty
         if (!isFlightDuty() || otherDuty == null || !otherDuty.notEmpty())
             return 0;
         else {
-            Duration rest = Duration.between(end, otherDuty.getStart());
-            Duration signInDuration = flightAssignments.first().getFlight().getSignInDuration();
-            Duration signOffDuration = flightAssignments.last().getFlight().getSignOffDuration();
-            Duration dutyDuration = Duration.between(start.minus(signInDuration), end.plus(signOffDuration));
+            Duration rest = Duration.between(getEnd(), otherDuty.getStart());
+            Duration dutyDuration = Duration.between(getStart(), getEnd());
             Duration minimumRest = null;
 
             //if the duty end in home base
@@ -259,32 +266,23 @@ public class Duty extends AbstractPersistable {
         this.date = date;
     }
 
-    public LocalDateTime getStart() {
-        return start;
+    public LocalDateTime getPreAssignedDutyStart() {
+        return preAssignedDutyStart;
     }
 
-    public void setStart(LocalDateTime start) {
-        this.start = start;
+    public void setPreAssignedDutyStart(LocalDateTime start) {
+        this.preAssignedDutyStart = start;
     }
 
-    public LocalDateTime getEnd() {
-        return end;
+    public LocalDateTime getPreAssignedDutyEnd() {
+        return preAssignedDutyEnd;
     }
 
-    public void setEnd(LocalDateTime end) {
-        this.end = end;
-    }
-
-    public LocalDateTime getLastFlightArrival() {
-        return lastFlightArrival;
-    }
-
-    public void setLastFlightArrival(LocalDateTime lastFlightArrival) {
-        this.lastFlightArrival = lastFlightArrival;
+    public void setPreAssignedDutyEnd(LocalDateTime end) {
+        this.preAssignedDutyEnd = end;
     }
 
     public NavigableSet<FlightAssignment> getFlightAssignments() {
         return flightAssignments;
     }
-
 }

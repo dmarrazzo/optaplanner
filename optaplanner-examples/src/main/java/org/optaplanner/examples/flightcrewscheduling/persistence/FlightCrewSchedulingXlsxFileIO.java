@@ -174,8 +174,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                         duty.setCode(mapEmployeeDateToDutyCode.get(employeeName+"-"+dutyDate));
                         duty.setDate(dutyDate);
                         duty.setEmployee(employee);
-                        duty.setStart(dutyStart);
-                        duty.setEnd(dutyEnd);
+                        duty.setPreAssignedDutyStart(dutyStart);
+                        duty.setPreAssignedDutyEnd(dutyEnd);
                         employee.setDutyByDate(dutyDate, duty);
                     }                    
                 }
@@ -463,13 +463,11 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
                         if (duty != null) {
                             duty.addFlightAssignment(flightAssignment);
-                            duty.update();
                         } else {
                             duty = new Duty();
                             duty.setEmployee(employee);
                             duty.setDate(dutyDate);
                             duty.addFlightAssignment(flightAssignment);
-                            duty.update();
                             employee.setDutyByDate(dutyDate, duty);
                         }
                     }
@@ -848,8 +846,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                             if (unavailable) {
                                 nextCell(unavailableStyle);
                             } else if (duty.getCode().matches(PRE_ASSIGNED_DUTY_MATCH)
-                                    && departureHour == duty.getStart().getHour()) {
-                                int stretch = (int) Duration.between(duty.getStart(), duty.getEnd())
+                                    && departureHour == duty.getPreAssignedDutyStart().getHour()) {
+                                int stretch = (int) Duration.between(duty.getPreAssignedDutyStart(), duty.getPreAssignedDutyEnd())
                                                             .abs().toHours();
                                 nextCell(unavailableStyle).setCellValue(duty.getCode());
                                 if (stretch > 0)

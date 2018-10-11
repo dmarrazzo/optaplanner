@@ -170,9 +170,6 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
                     clonedDuty.setCode(duty.getCode());
                     clonedDuty.setDate(duty.getDate());
                     clonedDuty.setEmployee(duty.getEmployee());
-                    clonedDuty.setStart(duty.getStart());
-                    clonedDuty.setEnd(duty.getEnd());
-                    clonedDuty.setLastFlightArrival(duty.getLastFlightArrival());
                     clonedDuties.put(dutyKey, clonedDuty);
                 }
                 employee.setDuties(clonedDuties);
@@ -215,7 +212,6 @@ public class FlightCrewSchedulingScoreRulesXlsxTest {
                     //duty
                     Duty duty = employee.getDutyByDate(flightAssignment.getFlight().getArrivalUTCDate());
                     duty.addFlightAssignment(flightAssignment);
-                    duty.update();
                 }
             }
 

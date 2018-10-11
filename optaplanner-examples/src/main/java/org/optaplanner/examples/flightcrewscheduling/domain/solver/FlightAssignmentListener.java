@@ -65,8 +65,6 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
             scoreDirector.beforeVariableChanged(duty, "flightAssignments");
             duty.addFlightAssignment(flightAssignment);
             scoreDirector.afterVariableChanged(duty, "flightAssignments");
-
-            updateDuty(scoreDirector, duty, flightAssignment.getEmployee());
         }
     }
 
@@ -79,43 +77,7 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
             scoreDirector.beforeVariableChanged(duty, "flightAssignments");
             duty.removeFlightAssignment(flightAssignment);
             scoreDirector.afterVariableChanged(duty, "flightAssignments");
-
-            updateDuty(scoreDirector, duty, flightAssignment.getEmployee());
         }
     }
 
-    private void updateDuty(ScoreDirector scoreDirector, Duty duty, Employee employee) {
-        // Quick fix for score corruption
-        // don't update if it's a pre-assigned duty
-        if (duty.getCode() != null)
-            return;
-        
-        if (duty.getFlightAssignments().isEmpty() ) {
-            
-            scoreDirector.beforeVariableChanged(duty, "start");
-            duty.setStart(null);
-            scoreDirector.afterVariableChanged(duty, "start");
-
-            scoreDirector.beforeVariableChanged(duty, "end");
-            duty.setEnd(null);
-            scoreDirector.afterVariableChanged(duty, "end");
-
-            scoreDirector.beforeVariableChanged(duty, "lastFlightArrival");
-            duty.setLastFlightArrival(null);
-            scoreDirector.afterVariableChanged(duty, "lastFlightArrival");
-        } else {
-
-            scoreDirector.beforeVariableChanged(duty, "start");
-            duty.updateStart();
-            scoreDirector.afterVariableChanged(duty, "start");
-
-            scoreDirector.beforeVariableChanged(duty, "end");
-            duty.updateEnd();
-            scoreDirector.afterVariableChanged(duty, "end");
-
-            scoreDirector.beforeVariableChanged(duty, "lastFlightArrival");
-            duty.updateLastFlightArrival();
-            scoreDirector.afterVariableChanged(duty, "lastFlightArrival");
-        }
-    }
 }

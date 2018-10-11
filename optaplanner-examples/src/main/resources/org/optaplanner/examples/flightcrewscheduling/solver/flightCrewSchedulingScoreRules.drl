@@ -87,6 +87,13 @@ rule "Employee unavailability"
         scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
+rule "Ground duties cannot accept Flight Duties"
+	when
+		Duty ( code == "GND", isFlightDuty() )
+	then
+        scoreHolder.addHardConstraintMatch(kcontext, -1);	
+end
+
 // ############################################################################
 // Soft constraints
 // ############################################################################
