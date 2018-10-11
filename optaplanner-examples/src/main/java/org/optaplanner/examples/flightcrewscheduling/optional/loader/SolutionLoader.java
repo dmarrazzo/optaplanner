@@ -11,8 +11,8 @@ import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewSolution;
 import org.optaplanner.examples.flightcrewscheduling.persistence.FlightCrewSchedulingXlsxFileIO;
 
 public class SolutionLoader {
-    private static final String refSchedule = "data/flightcrewscheduling/unsolved/1D-flights-poc.xlsx";
-    private static final String outSchedule = "data/flightcrewscheduling/solved/working-poc.xlsx";
+    private static final String refSchedule = "data/flightcrewscheduling/unsolved/2W-flights-poc.xlsx";
+    private static final String outSchedule = "data/flightcrewscheduling/solved/2W-flights-poc.xlsx";
 
     public static void main(String[] args) {
         File refScheduleFile = new File(refSchedule);
