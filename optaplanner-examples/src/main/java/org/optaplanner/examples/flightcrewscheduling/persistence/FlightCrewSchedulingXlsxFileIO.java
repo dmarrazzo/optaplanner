@@ -168,10 +168,11 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     Duty duty = employee.getDutyByDate(dutyDate);
                     
                     // TODO: new model to manage multiple activity for a duty
-                    if (duty == null) {
+                    String dutyCode = mapEmployeeDateToDutyCode.get(employeeName+"-"+dutyDate);
+                    if (duty == null && dutyCode != null) {
                         // Create a new duty. Retrieve duty code from map emp-date/dutyCode (from employee list)
                         duty = new Duty();
-                        duty.setCode(mapEmployeeDateToDutyCode.get(employeeName+"-"+dutyDate));
+                        duty.setCode(dutyCode);
                         duty.setDate(dutyDate);
                         duty.setEmployee(employee);
                         duty.setPreAssignedDutyStart(dutyStart);
@@ -831,11 +832,15 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
                                 int stretch = (int) Duration.between(firstDeparture, lastArrival)
                                                             .toHours();
-
-                                if (stretch > 0)
-                                    currentSheet.addMergedRegion(new CellRangeAddress(
-                                            currentRowNumber, currentRowNumber, currentColumnNumber,
-                                            currentColumnNumber + stretch));
+                                try {
+                                    if (stretch > 0)
+                                        currentSheet.addMergedRegion(new CellRangeAddress(
+                                                currentRowNumber, currentRowNumber,
+                                                currentColumnNumber,
+                                                currentColumnNumber + stretch));
+                                } catch (Exception e) {
+                                    System.err.println(e.getMessage());
+                                }
                                 currentRow.setHeightInPoints(30);
                                 currentColumnNumber += stretch - 1;
                                 departureHour += stretch;
@@ -847,13 +852,19 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                                 nextCell(unavailableStyle);
                             } else if (duty.getCode().matches(PRE_ASSIGNED_DUTY_MATCH)
                                     && departureHour == duty.getPreAssignedDutyStart().getHour()) {
-                                int stretch = (int) Duration.between(duty.getPreAssignedDutyStart(), duty.getPreAssignedDutyEnd())
+                                // workaround: remove 1 minutes for duties finishing at 00, this avoid filling the whole next hour
+                                int stretch = (int) Duration.between(duty.getPreAssignedDutyStart(), duty.getPreAssignedDutyEnd().minusMinutes(1))
                                                             .abs().toHours();
                                 nextCell(unavailableStyle).setCellValue(duty.getCode());
-                                if (stretch > 0)
-                                    currentSheet.addMergedRegion(new CellRangeAddress(
-                                            currentRowNumber, currentRowNumber, currentColumnNumber,
-                                            currentColumnNumber + stretch));
+                                try {
+                                    if (stretch > 0)
+                                        currentSheet.addMergedRegion(new CellRangeAddress(
+                                                currentRowNumber, currentRowNumber, currentColumnNumber,
+                                                currentColumnNumber + stretch));
+                                    
+                                } catch (Exception e) {
+                                    System.err.println(e.getMessage());
+                                }
                             } else {
                                 nextCell(defaultStyle);
                             }
