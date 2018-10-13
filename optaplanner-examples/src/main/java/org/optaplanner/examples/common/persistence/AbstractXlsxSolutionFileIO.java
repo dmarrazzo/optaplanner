@@ -384,6 +384,18 @@ public abstract class AbstractXlsxSolutionFileIO<Solution_> implements SolutionF
             return style;
         }
 
+        protected XSSFCellStyle createStyle(byte r, byte g, byte b) {
+            XSSFCellStyle style = workbook.createCellStyle();
+
+            style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            byte[] rgb = {r, g, b};
+            XSSFColor color = new XSSFColor(rgb , null);
+            style.setFillForegroundColor(color);
+            style.setWrapText(true);
+            style.setVerticalAlignment(VerticalAlignment.CENTER);
+            return style;
+        }
+
         protected void writeIntConstraintLine(String name, Supplier<Integer> supplier, String constraintDescription) {
             nextRow();
             nextHeaderCell(name);

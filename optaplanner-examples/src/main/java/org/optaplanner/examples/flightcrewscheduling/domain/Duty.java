@@ -146,26 +146,30 @@ public class Duty extends AbstractPersistable {
             return 0;
 
         int inconvenience = 0;
-        Airport departureAirport = flightAssignments.first().getFlight().getDepartureAirport();
-        Airport arrivalAirport = flightAssignments.last().getFlight().getArrivalAirport();
 
-        if (employee.getHomeAirport() != departureAirport) {
-            Long taxiTimeInMinutesTo = departureAirport.getTaxiTimeInMinutesTo(employee.getHomeAirport());
-            if (taxiTimeInMinutesTo == null)
-                inconvenience += 10;
-            else
-                inconvenience += taxiTimeInMinutesTo / 50;
-        }
-
-        if (employee.getHomeAirport() != arrivalAirport) {
-            Long taxiTimeInMinutesTo = arrivalAirport.getTaxiTimeInMinutesTo(employee.getHomeAirport());
-            if (taxiTimeInMinutesTo == null)
-                inconvenience += 10;
-            else
-                inconvenience += taxiTimeInMinutesTo / 50;
-        }
-
+        inconvenience += getStartingInconvenience();
+        inconvenience += getClosingInconvenience();
+        
         return inconvenience;
+    }
+
+    public int getStartingInconvenience() {
+        Airport departureAirport = flightAssignments.first().getFlight().getDepartureAirport();
+
+        Long taxiTimeInMinutesTo = departureAirport.getTaxiTimeInMinutesTo(employee.getHomeAirport());
+        if (taxiTimeInMinutesTo == null)
+            return 10;
+        else
+            return (int) (taxiTimeInMinutesTo / 50);
+    }
+
+    public int getClosingInconvenience() {
+        Airport arrivalAirport = flightAssignments.last().getFlight().getArrivalAirport();
+        Long taxiTimeInMinutesTo = arrivalAirport.getTaxiTimeInMinutesTo(employee.getHomeAirport());
+        if (taxiTimeInMinutesTo == null)
+            return 10;
+        else
+            return (int) (taxiTimeInMinutesTo / 50);
     }
 
     /**

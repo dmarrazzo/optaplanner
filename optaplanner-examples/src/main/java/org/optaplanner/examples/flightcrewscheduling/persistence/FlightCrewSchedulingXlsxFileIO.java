@@ -744,8 +744,9 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         }
 
         private void writeEmployeesView() {
-            XSSFCellStyle filledStyle = createStyle(FILLED_COLOR);
-
+            XSSFCellStyle missionStyle = createStyle(FILLED_COLOR);
+            XSSFCellStyle homeStyle = createStyle((byte)0x6E,(byte)0xff,(byte)0xC8);
+            
             nextSheet("Employees view", 2, 2, true);
             int minimumHour = solution.getFlightList().stream().map(Flight::getDepartureUTCTime)
                                       .map(LocalTime::getHour).min(Comparator.naturalOrder())
@@ -827,8 +828,13 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                             }
 
                             if (flightSlot != null) {
-                                nextCell(unavailable ? unavailableStyle
-                                        : filledStyle).setCellValue(flightSlot.toString());
+                                XSSFCellStyle style;
+                                if (duty.getClosingInconvenience() == 10)
+                                    style = missionStyle;
+                                else
+                                    style = homeStyle;
+                                
+                                nextCell(style).setCellValue(flightSlot.toString());
 
                                 int stretch = (int) Duration.between(firstDeparture, lastArrival)
                                                             .toHours();
