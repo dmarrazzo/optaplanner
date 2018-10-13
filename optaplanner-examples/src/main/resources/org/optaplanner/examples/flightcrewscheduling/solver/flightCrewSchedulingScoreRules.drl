@@ -148,6 +148,13 @@ rule "Home Base Convenience"
         scoreHolder.addSoftConstraintMatch(kcontext, -$inconvenience);	
 end
 
+rule "Duty should finish at home base before day off or ground duty"
+	when
+		Duty ( dayAfterGroundOrHoliday, getClosingInconvenience() == 10 )
+	then
+		scoreHolder.addSoftConstraintMatch(kcontext, 100);
+end
+
 /*
 rule "Minimize crew"
 	when

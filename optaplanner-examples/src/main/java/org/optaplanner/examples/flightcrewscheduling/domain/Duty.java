@@ -142,9 +142,6 @@ public class Duty extends AbstractPersistable {
      * @return a weight of the Home Base reachability max 20 = not reachable
      */
     public int getHomeBaseInconvenience() {
-        if (!isFlightDuty())
-            return 0;
-
         int inconvenience = 0;
 
         inconvenience += getStartingInconvenience();
@@ -154,6 +151,9 @@ public class Duty extends AbstractPersistable {
     }
 
     public int getStartingInconvenience() {
+        if (!isFlightDuty())
+            return 0;
+
         Airport departureAirport = flightAssignments.first().getFlight().getDepartureAirport();
 
         Long taxiTimeInMinutesTo = departureAirport.getTaxiTimeInMinutesTo(employee.getHomeAirport());
@@ -164,6 +164,9 @@ public class Duty extends AbstractPersistable {
     }
 
     public int getClosingInconvenience() {
+        if (!isFlightDuty())
+            return 0;
+
         Airport arrivalAirport = flightAssignments.last().getFlight().getArrivalAirport();
         Long taxiTimeInMinutesTo = arrivalAirport.getTaxiTimeInMinutesTo(employee.getHomeAirport());
         if (taxiTimeInMinutesTo == null)
@@ -172,6 +175,40 @@ public class Duty extends AbstractPersistable {
             return (int) (taxiTimeInMinutesTo / 50);
     }
 
+    public boolean isDayAfterGroundOrHoliday() {
+        LocalDate dayAfter = getDate().plusDays(1);
+        boolean nextHoliday = getEmployee().getUnavailableDaySet().contains(dayAfter);
+
+        if (nextHoliday)
+            return true;
+        else {
+            // This does not corrupt the score because ground duties are fixed
+            try {
+                String dayAfterCode = getEmployee().getDutyByDate(dayAfter).getCode();
+                return dayAfterCode.contentEquals("GND");                
+            } catch (NullPointerException e) {
+                return false;
+            }
+        }
+    }
+
+    public boolean isDayBeforeGroundOrHoliday() {
+        LocalDate dayBefore = getDate().minusDays(1);
+        boolean nextHoliday = getEmployee().getUnavailableDaySet().contains(dayBefore);
+
+        if (nextHoliday)
+            return true;
+        else {
+            // This does not corrupt the score because ground duties are fixed
+            try {
+                String dayBeforeCode = getEmployee().getDutyByDate(dayBefore).getCode();
+                return dayBeforeCode.contentEquals("GND");
+            } catch (NullPointerException e) {
+                return false;
+            }
+        }
+    }
+    
     /**
      * 
      * @return the number of minutes exceeding the Maximum Daily FDP
