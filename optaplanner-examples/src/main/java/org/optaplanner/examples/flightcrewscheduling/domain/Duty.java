@@ -102,7 +102,7 @@ public class Duty extends AbstractPersistable {
             // Flight duty period has to consider the signin but not the signoff (now we are
             // considering even preassigned duty in getStart)
             return Optional.of(Duration.between(getStart(), getFlightEnd()));
-        } catch (NullPointerException e) {
+        } catch (Exception e) {
             return Optional.empty();
         }
     }
@@ -240,8 +240,44 @@ public class Duty extends AbstractPersistable {
         }
     }
 
+    /**
+     * 
+     * @param otherDuty
+     * @return true if this duty is on day after otherDuty
+     */
     public boolean isDayAfter(Duty otherDuty) {
-        return Period.between(getDate(), otherDuty.getDate()).getDays() == 1;
+        return otherDuty.getDate().isAfter(getDate());
+    }
+    
+    public boolean isLateArrival() {
+        try {
+            // the duty finish the day after the duty date
+            return Period.between(getDate(), getEnd().toLocalDate()).getDays() > 0;
+        } catch (NullPointerException e) {
+            return false;
+        }
+    }
+    
+    public boolean isNightDuty () {
+        try {
+            return getStart().toLocalTime().isBefore(LocalTime.of(5, 0));
+        } catch (NullPointerException e) {
+            return false;
+        }
+    }
+    
+    public boolean noLocalNight(Duty previousDuty) {
+        try {
+            LocalDateTime endPrevious = previousDuty.getEnd();
+            
+            // if previous duty finish after 22
+            if (endPrevious.toLocalTime().isAfter(LocalTime.of(22, 00)))
+                return Duration.between(endPrevious, getStart()).toHours() < 8;
+            else
+                return getStart().toLocalTime().isBefore(LocalTime.of(6, 0));
+        } catch (NullPointerException e) {
+            return false;
+        }
     }
 
     public int getRestLack(Duty otherDuty) {

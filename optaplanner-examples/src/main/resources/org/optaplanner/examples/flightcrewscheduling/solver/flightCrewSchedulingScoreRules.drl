@@ -136,7 +136,7 @@ end
 rule "Respect Rest period"
 	when
 		$dutyAfter : Duty ( notEmpty(), $rightId : id )
-		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), isDayAfter($dutyAfter), getRestLack($dutyAfter) > 0 )
+		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), $dutyAfter.isDayAfter(this), getRestLack($dutyAfter) > 0 )
 	then
         scoreHolder.addSoftConstraintMatch(kcontext, -100);	
 end
@@ -155,22 +155,22 @@ rule "Duty should finish at home base before day off or ground duty"
 		scoreHolder.addSoftConstraintMatch(kcontext, 100);
 end
 
-/*
-rule "Minimize crew"
+rule "Avoid disruptive schedule - late arrival and no local night"
 	when
-		Employee ( flightAssignmentSet.size() != 0 )
+		$d1 : Duty (lateArrival, $employee : employee)
+		$d2 : Duty (employee == $employee, isDayAfter($d1))
+		Duty (employee == $employee, isDayAfter($d2), getStartingInconvenience()<10, noLocalNight($d2))
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1);	
+		scoreHolder.addSoftConstraintMatch(kcontext, 100);
+end
+
+// Not sure of the following rule
+/*
+rule "Avoid disruptive schedule - night duty and no local night"
+	when
+		$d1 : Duty (nightDuty, $employee : employee)
+		Duty (employee == $employee, isDayAfter($d1), getStartingInconvenience()<10, noLocalNight($d1))
+	then
+		scoreHolder.addSoftConstraintMatch(kcontext, 100);
 end
 */
-
-//rule "Load balance flight duration total per employee"
-//    when
-//        FlightCrewParametrization($weight : loadBalanceFlightDurationTotalPerEmployee != 0)
-//        accumulate(
-//            Employee($total : getFlightDurationTotalInMinutes());
-//            $result : loadBalance($total)
-//        )
-//    then
-//        scoreHolder.addSoftConstraintMatch(kcontext, - $weight * $result.getMeanDeviationSquaredSumRootMillis());
-//end
