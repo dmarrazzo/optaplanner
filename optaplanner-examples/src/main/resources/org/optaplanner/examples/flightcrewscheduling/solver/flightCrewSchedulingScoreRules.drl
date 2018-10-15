@@ -17,7 +17,7 @@
 package org.optaplanner.examples.flightcrewscheduling.solver;
     dialect "java"
 
-import org.optaplanner.core.api.score.buildin.hardsoftlong.HardSoftLongScoreHolder;
+import org.optaplanner.core.api.score.buildin.hardmediumsoftlong.HardMediumSoftLongScoreHolder
 
 import org.optaplanner.examples.flightcrewscheduling.domain.Airport;
 import org.optaplanner.examples.flightcrewscheduling.domain.Duty;
@@ -30,7 +30,7 @@ import org.optaplanner.examples.flightcrewscheduling.domain.Skill;
 import accumulate org.optaplanner.examples.common.solver.drools.functions.LoadBalanceByCountAccumulateFunction loadBalanceByCount;
 import accumulate org.optaplanner.examples.common.solver.drools.functions.LoadBalanceAccumulateFunction loadBalance;
 
-global HardSoftLongScoreHolder scoreHolder;
+global HardMediumSoftLongScoreHolder scoreHolder;
 
 // ############################################################################
 // Hard constraints
@@ -112,47 +112,40 @@ rule "Transfer between two flights"
     when
         Employee( $cs : connectionStatus, flightAssignmentSet != null, flightAssignmentSet!.size() > 0)
     then
-        scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, - $cs.taxiMinutes );
+        scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, 0, - $cs.taxiMinutes );
 end
 
 // ############################################################################
-// Soft constraints
+// Medium constraints
 // ############################################################################
 
 rule "Dayoff distance respect"
     when
         FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
     then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1);
+        scoreHolder.addMediumConstraintMatch(kcontext, -1);
 end
 
 rule "Maximum daily FDP"
 	when
 		Duty ( isFlightDuty(), $over : overMaxFDP )
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -$over);
+        scoreHolder.addMediumConstraintMatch(kcontext, -$over);
 end
 
 rule "Respect Rest period"
 	when
 		$dutyAfter : Duty ( notEmpty(), $rightId : id )
-		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), $dutyAfter.isDayAfter(this), getRestLack($dutyAfter) > 0 )
+		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), $dutyAfter.isDayAfter(this), $restLack : getRestLack() > 0 )
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -100);	
-end
-
-rule "Home Base Convenience"
-	when
-		Duty ( isFlightDuty(), $inconvenience : getHomeBaseInconvenience() )
-	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -$inconvenience);	
+        scoreHolder.addMediumConstraintMatch(kcontext, -$restLack);	
 end
 
 rule "Duty should finish at home base before day off or ground duty"
 	when
 		Duty ( dayAfterGroundOrHoliday, getClosingInconvenience() == 10 )
 	then
-		scoreHolder.addSoftConstraintMatch(kcontext, 100);
+		scoreHolder.addMediumConstraintMatch(kcontext, -10);
 end
 
 rule "Avoid disruptive schedule - late arrival and no local night"
@@ -161,7 +154,25 @@ rule "Avoid disruptive schedule - late arrival and no local night"
 		$d2 : Duty (employee == $employee, isDayAfter($d1))
 		Duty (employee == $employee, isDayAfter($d2), getStartingInconvenience()<10, noLocalNight($d2))
 	then
-		scoreHolder.addSoftConstraintMatch(kcontext, 100);
+		scoreHolder.addMediumConstraintMatch(kcontext, -10);
+end
+
+rule "Unassigned FlightAssignment"
+	when 
+		FlightAssignment ( employee == null )
+	then
+		scoreHolder.addMediumConstraintMatch(kcontext, -10);
+end
+
+// ############################################################################
+// Soft constraints
+// ############################################################################
+
+rule "Home Base Convenience"
+	when
+		Duty ( isFlightDuty(), $inconvenience : getHomeBaseInconvenience() )
+	then
+        scoreHolder.addSoftConstraintMatch(kcontext, -$inconvenience);	
 end
 
 // Not sure of the following rule

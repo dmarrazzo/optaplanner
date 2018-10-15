@@ -280,14 +280,15 @@ public class Duty extends AbstractPersistable {
         }
     }
 
-    public int getRestLack(Duty otherDuty) {
+    public int getRestLack() {
         // TODO: manage mixed duty
-
+        Duty nextDuty = getEmployee().getDutyByDate(getDate().plusDays(1));
+        
         // if this is not a Flight Duty or the other duty is empty
-        if (!isFlightDuty() || otherDuty == null || !otherDuty.notEmpty())
+        if (!isFlightDuty() || nextDuty == null || !nextDuty.notEmpty())
             return 0;
         else {
-            Duration rest = Duration.between(getEnd(), otherDuty.getStart());
+            Duration rest = Duration.between(getEnd(), nextDuty.getStart());
             Duration dutyDuration = Duration.between(getStart(), getEnd());
             Duration minimumRest = null;
 

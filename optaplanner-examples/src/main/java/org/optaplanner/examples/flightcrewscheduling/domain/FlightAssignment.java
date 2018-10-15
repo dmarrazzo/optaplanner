@@ -35,7 +35,7 @@ public class FlightAssignment extends AbstractPersistable {
     private int indexInFlight;
     private Skill requiredSkill;
 
-    @PlanningVariable(valueRangeProviderRefs = {"employeeRange"})
+    @PlanningVariable(valueRangeProviderRefs = {"employeeRange"}, nullable = true)
     private Employee employee;
 
     public FlightAssignment() {
