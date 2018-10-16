@@ -35,6 +35,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -68,6 +69,7 @@ import org.optaplanner.examples.flightcrewscheduling.domain.Flight;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightAssignment;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametrization;
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewSolution;
+import org.optaplanner.examples.flightcrewscheduling.domain.IataFlight;
 import org.optaplanner.examples.flightcrewscheduling.domain.Skill;
 import org.optaplanner.swing.impl.TangoColorFactory;
 
@@ -132,6 +134,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             readSkillList();
             readAirportList();
             readTaxiTimeMaps();
+            readIataFlights();
             readQualifications();
             readMaxFDP();
             readFlightListAndFlightAssignmentList();
@@ -345,6 +348,35 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     }
                 }
 
+            }
+        }
+
+        private void readIataFlights() {
+            nextSheet("Iata Flights");
+            nextRow();
+            readHeaderCell("Departure station");
+            nextRow();
+            // Header: DEP  DEST    Departure time  Arrival time    DAY_OF_WEEK
+            readHeaderCell("DEP");
+            
+            long id = 0;
+            
+            // each row is a iata flight
+            while (nextRow()) {
+                IataFlight iataFlight = new IataFlight();
+                iataFlight.setId(id++);
+                
+                String departureCode = nextStringCell().getStringCellValue();
+                Airport departureAirport = airportMap.get(departureCode);
+
+                iataFlight.setDepartureAirport(departureAirport);
+                String arrivalCode = nextStringCell().getStringCellValue();
+                iataFlight.setArrivalAirport(airportMap.get(arrivalCode));
+                iataFlight.setDepartureUTCTime(LocalDateTime.ofInstant(nextNumericCell().getDateCellValue().toInstant(), ZoneId.systemDefault()).toLocalTime());
+                iataFlight.setArrivalUTCTime(LocalDateTime.ofInstant(nextNumericCell().getDateCellValue().toInstant(), ZoneId.systemDefault()).toLocalTime());
+                iataFlight.setDaysOfWeek(nextCell().getRawValue());
+                
+                departureAirport.addIataFlight(iataFlight);
             }
         }
 
