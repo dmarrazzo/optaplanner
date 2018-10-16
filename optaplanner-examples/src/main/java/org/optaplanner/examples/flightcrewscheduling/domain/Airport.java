@@ -16,6 +16,8 @@
 
 package org.optaplanner.examples.flightcrewscheduling.domain;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.optaplanner.examples.common.domain.AbstractPersistable;
@@ -29,6 +31,7 @@ public class Airport extends AbstractPersistable {
     private double longitude;
 
     private Map<Airport, Long> taxiTimeInMinutesMap;
+    private List<IataFlight> iataFlightList;
 
     public Airport() {
     }
@@ -68,6 +71,12 @@ public class Airport extends AbstractPersistable {
         double dZ = cartesianZ - otherCartesianZ;
         double r = Math.sqrt((dX * dX) + (dY * dY) + (dZ * dZ));
         return TWICE_EARTH_RADIUS_IN_KM * Math.asin(r);
+    }
+
+    public void addIataFlight(IataFlight iataFlight) {
+        if (getIataFlightList() == null)
+            setIataFlightList(new ArrayList<>(10));
+        getIataFlightList().add(iataFlight);
     }
 
     @Override
@@ -117,6 +126,14 @@ public class Airport extends AbstractPersistable {
 
     public void setTaxiTimeInMinutesMap(Map<Airport, Long> taxiTimeInMinutesMap) {
         this.taxiTimeInMinutesMap = taxiTimeInMinutesMap;
+    }
+
+    public List<IataFlight> getIataFlightList() {
+        return iataFlightList;
+    }
+
+    public void setIataFlightList(List<IataFlight> iataFlightList) {
+        this.iataFlightList = iataFlightList;
     }
 
 }
