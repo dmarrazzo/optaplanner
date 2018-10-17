@@ -15,7 +15,7 @@
  */
 
 package org.optaplanner.examples.flightcrewscheduling.solver;
-    dialect "java"
+dialect "java"
 
 import org.optaplanner.core.api.score.buildin.hardsoftlong.HardSoftLongScoreHolder;
 
@@ -104,21 +104,6 @@ rule "Intraday flights admitted when the aircraft is the same - legs"
         scoreHolder.addHardConstraintMatch(kcontext, -1);
 end
 
-// ############################################################################
-// Mixed constraints
-// ############################################################################
-
-rule "Transfer between two flights"
-    when
-        Employee( $cs : connectionStatus, flightAssignmentSet != null, flightAssignmentSet!.size() > 0)
-    then
-        scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, - $cs.taxiMinutes );
-end
-
-// ############################################################################
-// Soft constraints
-// ############################################################################
-
 rule "Dayoff distance respect"
     when
         FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
@@ -138,21 +123,37 @@ rule "Respect Rest period"
 		$dutyAfter : Duty ( notEmpty(), $rightId : id )
 		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), $dutyAfter.isDayAfter(this), getRestLack($dutyAfter) > 0 )
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -100);	
-end
-
-rule "Home Base Convenience"
-	when
-		Duty ( isFlightDuty(), $inconvenience : getHomeBaseInconvenience() )
-	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -$inconvenience);	
+        scoreHolder.addSoftConstraintMatch(kcontext, -1);	
 end
 
 rule "Duty should finish at home base before day off or ground duty"
 	when
 		Duty ( dayAfterGroundOrHoliday, getClosingInconvenience() == 10 )
 	then
-		scoreHolder.addSoftConstraintMatch(kcontext, 100);
+		scoreHolder.addSoftConstraintMatch(kcontext, 1);
+end
+
+// ############################################################################
+// Mixed constraints
+// ############################################################################
+
+rule "Transfer between two flights"
+    when
+        Employee( $cs : connectionStatus, flightAssignmentSet != null, flightAssignmentSet!.size() > 0)
+    then
+        scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, - $cs.taxiMinutes );
+end
+
+
+// ############################################################################
+// Soft constraints
+// ############################################################################
+
+rule "Home Base Convenience"
+	when
+		Duty ( isFlightDuty(), $inconvenience : getHomeBaseInconvenience() )
+	then
+        scoreHolder.addSoftConstraintMatch(kcontext, -$inconvenience);	
 end
 
 rule "Avoid disruptive schedule - late arrival and no local night"
