@@ -79,6 +79,15 @@ public class Airport extends AbstractPersistable {
         getIataFlightList().add(iataFlight);
     }
 
+    public ArrayList<IataFlight> getIataFlightsFor(Airport targetAirport) {
+        ArrayList<IataFlight> iataFlightListReturn = new ArrayList<>();
+        for (IataFlight iataFlight : iataFlightList) {
+            if (iataFlight.getArrivalAirport() == targetAirport)
+                iataFlightListReturn.add(iataFlight);
+        }
+        return iataFlightListReturn;
+    }
+
     @Override
     public String toString() {
         return name;

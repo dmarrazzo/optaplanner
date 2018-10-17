@@ -25,6 +25,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -53,7 +54,7 @@ public class Employee extends AbstractPersistable {
      * Sorted by {@link FlightAssignment#DATE_TIME_COMPARATOR}.
      */
     @InverseRelationShadowVariable(sourceVariableName = "employee")
-    private SortedSet<FlightAssignment> flightAssignmentSet;
+    private NavigableSet<FlightAssignment> flightAssignmentSet;
     
     private HashMap<String, Duty> duties = new HashMap<>();
 
@@ -239,11 +240,11 @@ public class Employee extends AbstractPersistable {
         this.unavailableDaySet = unavailableDaySet;
     }
 
-    public SortedSet<FlightAssignment> getFlightAssignmentSet() {
+    public NavigableSet<FlightAssignment> getFlightAssignmentSet() {
         return flightAssignmentSet;
     }
 
-    public void setFlightAssignmentSet(SortedSet<FlightAssignment> flightAssignmentSet) {
+    public void setFlightAssignmentSet(NavigableSet<FlightAssignment> flightAssignmentSet) {
         this.flightAssignmentSet = flightAssignmentSet;
     }
 
