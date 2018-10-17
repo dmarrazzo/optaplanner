@@ -40,7 +40,13 @@ public class Duty extends AbstractPersistable {
 
     @CustomShadowVariable(variableListenerClass = FlightAssignmentListener.class, sources = @PlanningVariableReference(entityClass = FlightAssignment.class, variableName = "employee"))
     private NavigableSet<FlightAssignment> flightAssignments;
+    
+    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
+    private IataFlight iataFlight;
 
+    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
+    private Duty iataFlightHolder;
+    
     public Duty() {
         flightAssignments = new TreeSet<FlightAssignment>(FlightAssignment.DATE_TIME_COMPARATOR);
     }
@@ -423,5 +429,21 @@ public class Duty extends AbstractPersistable {
 
     public NavigableSet<FlightAssignment> getFlightAssignments() {
         return flightAssignments;
+    }
+
+    public Duty getIataFlightHolder() {
+        return iataFlightHolder;
+    }
+
+    public void setIataFlightHolder(Duty iataFlightHolder) {
+        this.iataFlightHolder = iataFlightHolder;
+    }
+
+    public IataFlight getIataFlight() {
+        return iataFlight;
+    }
+
+    public void setIataFlight(IataFlight iataFlight) {
+        this.iataFlight = iataFlight;
     }
 }

@@ -7,7 +7,7 @@
     <problemBenchmarks>
       <solutionFileIOClass>org.optaplanner.examples.flightcrewscheduling.persistence.FlightCrewSchedulingXlsxFileIO</solutionFileIOClass>
       <inputSolutionFile>data/flightcrewscheduling/unsolved/2D-flights-poc.xlsx</inputSolutionFile>
-      <inputSolutionFile>data/flightcrewscheduling/unsolved/1W-flights-poc.xlsx</inputSolutionFile>
+      <inputSolutionFile>data/flightcrewscheduling/unsolved/2W-flights-poc.xlsx</inputSolutionFile>
       <!--<problemStatisticType>BEST_SCORE</problemStatisticType>-->
       <!--<problemStatisticType>STEP_SCORE</problemStatisticType>-->
       <!--<problemStatisticType>SCORE_CALCULATION_SPEED</problemStatisticType>-->
@@ -31,7 +31,7 @@
 	  </scoreDirectorFactory>
 
       <termination>
-        <minutesSpentLimit>5</minutesSpentLimit>
+        <minutesSpentLimit>20</minutesSpentLimit>
       </termination>
     </solver>
   </inheritedSolverBenchmark>
@@ -48,20 +48,6 @@
 	      <swapMoveSelector/>
 	      <pillarChangeMoveSelector/>
 	      <pillarSwapMoveSelector/>
-	    </unionMoveSelector>
-	  </localSearch>
-    </solver>
-  </solverBenchmark>
-  <solverBenchmark>
-    <name>No Pillar</name>
-    <solver>
-	  <constructionHeuristic>
-	    <constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
-      </constructionHeuristic>
-      <localSearch>
-	    <unionMoveSelector>
-	      <changeMoveSelector/>
-	      <swapMoveSelector/>
 	    </unionMoveSelector>
 	  </localSearch>
     </solver>
