@@ -43,9 +43,6 @@ public class Duty extends AbstractPersistable {
     
     @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
     private IataFlight iataFlight;
-
-    @CustomShadowVariable(variableListenerRef = @PlanningVariableReference(variableName = "flightAssignments"))
-    private Duty iataFlightHolder;
     
     public Duty() {
         flightAssignments = new TreeSet<FlightAssignment>(FlightAssignment.DATE_TIME_COMPARATOR);
@@ -69,6 +66,8 @@ public class Duty extends AbstractPersistable {
 
     public LocalDateTime getStart() {
         // TODO: taxi time ??
+        // to avoid score trap: compare with preassigned duty start
+
         if (isFlightDuty()) {
             LocalDateTime departureUTCDateTime = flightAssignments.first().getFlight()
                                                                   .getDepartureUTCDateTime();
@@ -76,19 +75,30 @@ public class Duty extends AbstractPersistable {
 
             if (preAssignedDutyStart == null || departureUTCDateTime.isBefore(preAssignedDutyStart))
                 return departureUTCDateTime.minus(signInDuration);
+        }  
+        if (iataFlight != null){
+            LocalDateTime iataFlightDepartureDateTime = LocalDateTime.of(getDate(), iataFlight.getDepartureUTCTime());
+            if (preAssignedDutyStart != null || iataFlightDepartureDateTime.isBefore(preAssignedDutyStart))
+                return iataFlightDepartureDateTime;
         }
         return preAssignedDutyStart;
     }
 
     public LocalDateTime getEnd() {
         // TODO: taxi time ??
+        // to avoid score trap: compare with preassigned duty start
         if (isFlightDuty()) {
             LocalDateTime arrivalUTCDateTime = flightAssignments.last().getFlight()
                                                                 .getArrivalUTCDateTime();
             Duration signOffDuration = flightAssignments.last().getFlight().getSignOffDuration();
 
-            if (preAssignedDutyStart == null || arrivalUTCDateTime.isAfter(preAssignedDutyStart))
+            if (preAssignedDutyEnd == null || arrivalUTCDateTime.isAfter(preAssignedDutyEnd))
                 return arrivalUTCDateTime.plus(signOffDuration);
+        }
+        if (iataFlight != null){
+            LocalDateTime iataFlightArrivalDateTime = LocalDateTime.of(getDate(), iataFlight.getArrivalUTCTime());
+            if (preAssignedDutyEnd != null || iataFlightArrivalDateTime.isAfter(preAssignedDutyEnd))
+                return iataFlightArrivalDateTime;
         }
         return preAssignedDutyEnd;
     }
@@ -428,14 +438,6 @@ public class Duty extends AbstractPersistable {
 
     public NavigableSet<FlightAssignment> getFlightAssignments() {
         return flightAssignments;
-    }
-
-    public Duty getIataFlightHolder() {
-        return iataFlightHolder;
-    }
-
-    public void setIataFlightHolder(Duty iataFlightHolder) {
-        this.iataFlightHolder = iataFlightHolder;
     }
 
     public IataFlight getIataFlight() {

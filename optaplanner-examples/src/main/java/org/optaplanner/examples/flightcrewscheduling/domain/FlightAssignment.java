@@ -20,8 +20,11 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
+import org.optaplanner.core.api.domain.variable.CustomShadowVariable;
 import org.optaplanner.core.api.domain.variable.PlanningVariable;
+import org.optaplanner.core.api.domain.variable.PlanningVariableReference;
 import org.optaplanner.examples.common.domain.AbstractPersistable;
+import org.optaplanner.examples.flightcrewscheduling.domain.solver.FlightAssignmentListener;
 
 @PlanningEntity
 public class FlightAssignment extends AbstractPersistable {
@@ -38,6 +41,9 @@ public class FlightAssignment extends AbstractPersistable {
     @PlanningVariable(valueRangeProviderRefs = {"employeeRange"})
     private Employee employee;
 
+    @CustomShadowVariable(variableListenerClass = FlightAssignmentListener.class, sources = @PlanningVariableReference(variableName = "employee"))
+    private Duty iataFlightHoder;
+    
     public FlightAssignment() {
     }
 
@@ -84,6 +90,14 @@ public class FlightAssignment extends AbstractPersistable {
 
     public void setEmployee(Employee employee) {
         this.employee = employee;
+    }
+
+    public Duty getIataFlightHoder() {
+        return iataFlightHoder;
+    }
+
+    public void setIataFlightHoder(Duty iataFlightHoder) {
+        this.iataFlightHoder = iataFlightHoder;
     }
 
 }

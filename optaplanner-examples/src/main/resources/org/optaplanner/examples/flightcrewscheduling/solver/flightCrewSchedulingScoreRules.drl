@@ -94,28 +94,11 @@ rule "Standby duties cannot overlap Flight Duties"
         scoreHolder.addHardConstraintMatch(kcontext, -1);	
 end
 
-rule "Intraday flights admitted when the aircraft is the same - legs"
-	when
-        FlightAssignment(employee != null, $employee : employee, $flight: flight, $leftId : id)
-        FlightAssignment(employee != null, employee == $employee, 
-        	flight.departureUTCDate == $flight.departureUTCDate, 
-        	flight.aircraftRegistration != $flight.aircraftRegistration, id > $leftId )
-	then
-        scoreHolder.addHardConstraintMatch(kcontext, -1);
-end
-
-rule "Dayoff distance respect"
-    when
-        FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
-    then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1);
-end
-
 rule "Maximum daily FDP"
 	when
 		Duty ( isFlightDuty(), $over : overMaxFDP )
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -$over);
+        scoreHolder.addHardConstraintMatch(kcontext, -$over);
 end
 
 rule "Respect Rest period"
@@ -123,14 +106,22 @@ rule "Respect Rest period"
 		$dutyAfter : Duty ( notEmpty(), $rightId : id )
 		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), $dutyAfter.isDayAfter(this), getRestLack($dutyAfter) > 0 )
 	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1);	
+        scoreHolder.addHardConstraintMatch(kcontext, -1);	
 end
 
 rule "Duty should finish at home base before day off or ground duty"
 	when
 		Duty ( dayAfterGroundOrHoliday, getClosingInconvenience() == 10 )
 	then
-		scoreHolder.addSoftConstraintMatch(kcontext, 1);
+		scoreHolder.addHardConstraintMatch(kcontext, 1);
+end
+
+// Maybe this is an over constrain
+rule "Iata flight in not empty duty"
+	when
+		Duty ( iataFlight != null, notEmpty() )
+	then
+		scoreHolder.addHardConstraintMatch(kcontext, 1);
 end
 
 // ############################################################################
@@ -149,13 +140,26 @@ end
 // Soft constraints
 // ############################################################################
 
-rule "Home Base Convenience"
-	when
-		Duty ( isFlightDuty(), $inconvenience : getHomeBaseInconvenience() )
-	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -$inconvenience);	
+// TODO: This should be hard
+rule "Dayoff distance respect"
+    when
+        FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
+    then
+        scoreHolder.addSoftConstraintMatch(kcontext, -10);
 end
 
+// This should be hard but there are exception that are not managed by this constraint
+rule "Intraday flights admitted when the aircraft is the same - legs"
+	when
+        FlightAssignment(employee != null, $employee : employee, $flight: flight, $leftId : id)
+        FlightAssignment(employee != null, employee == $employee, 
+        	flight.departureUTCDate == $flight.departureUTCDate, 
+        	flight.aircraftRegistration != $flight.aircraftRegistration, id > $leftId )
+	then
+        scoreHolder.addSoftConstraintMatch(kcontext, -1);
+end
+
+// This should be hard but not sure of the business logic. It could be an overcontraint when not considering acclimatization
 rule "Avoid disruptive schedule - late arrival and no local night"
 	when
 		$d1 : Duty (lateArrival, $employee : employee)
@@ -165,6 +169,19 @@ rule "Avoid disruptive schedule - late arrival and no local night"
 		scoreHolder.addSoftConstraintMatch(kcontext, 100);
 end
 
+rule "Home Base Convenience"
+	when
+		Duty ( isFlightDuty(), $inconvenience : getHomeBaseInconvenience() )
+	then
+        scoreHolder.addSoftConstraintMatch(kcontext, -$inconvenience);	
+end
+
+rule "Minimize iata flight"
+	when
+		Duty ( iataFlight != null )
+	then
+		scoreHolder.addSoftConstraintMatch(kcontext, 10);
+end
 // Not sure of the following rule
 /*
 rule "Avoid disruptive schedule - night duty and no local night"

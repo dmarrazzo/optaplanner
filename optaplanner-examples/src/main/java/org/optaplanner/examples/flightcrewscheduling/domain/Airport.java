@@ -80,6 +80,9 @@ public class Airport extends AbstractPersistable {
     }
 
     public ArrayList<IataFlight> getIataFlightsFor(Airport targetAirport) {
+        if (iataFlightList == null)
+            return null;
+        
         ArrayList<IataFlight> iataFlightListReturn = new ArrayList<>();
         for (IataFlight iataFlight : iataFlightList) {
             if (iataFlight.getArrivalAirport() == targetAirport)
