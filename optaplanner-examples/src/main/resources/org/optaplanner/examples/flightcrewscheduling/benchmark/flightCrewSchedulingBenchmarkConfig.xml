@@ -6,9 +6,10 @@
   <inheritedSolverBenchmark>
     <problemBenchmarks>
       <solutionFileIOClass>org.optaplanner.examples.flightcrewscheduling.persistence.FlightCrewSchedulingXlsxFileIO</solutionFileIOClass>
-      <inputSolutionFile>data/flightcrewscheduling/unsolved/1W-flights-poc.xlsx</inputSolutionFile>
       <inputSolutionFile>data/flightcrewscheduling/unsolved/2W-flights-poc.xlsx</inputSolutionFile>
-      <!--<problemStatisticType>BEST_SCORE</problemStatisticType>-->
+      <inputSolutionFile>data/flightcrewscheduling/unsolved/3W-flights-poc.xlsx</inputSolutionFile>
+      <inputSolutionFile>data/flightcrewscheduling/unsolved/4W-flights-poc.xlsx</inputSolutionFile>
+      <problemStatisticType>BEST_SCORE</problemStatisticType>
       <!--<problemStatisticType>STEP_SCORE</problemStatisticType>-->
       <!--<problemStatisticType>SCORE_CALCULATION_SPEED</problemStatisticType>-->
       <!--<problemStatisticType>BEST_SOLUTION_MUTATION</problemStatisticType>-->
@@ -37,7 +38,22 @@
   </inheritedSolverBenchmark>
 
   <solverBenchmark>
-    <name>Pillar</name>
+    <name>Basic</name>
+    <solver>
+	  <constructionHeuristic>
+	    <constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
+      </constructionHeuristic>
+      <localSearch>
+	    <unionMoveSelector>
+	      <changeMoveSelector/>
+	      <swapMoveSelector/>
+	    </unionMoveSelector>
+	  </localSearch>
+    </solver>
+  </solverBenchmark>
+
+  <solverBenchmark>
+    <name>Pillar Move</name>
     <solver>
 	  <constructionHeuristic>
 	    <constructionHeuristicType>FIRST_FIT</constructionHeuristicType>
@@ -52,4 +68,5 @@
 	  </localSearch>
     </solver>
   </solverBenchmark>
+
 </plannerBenchmark>
