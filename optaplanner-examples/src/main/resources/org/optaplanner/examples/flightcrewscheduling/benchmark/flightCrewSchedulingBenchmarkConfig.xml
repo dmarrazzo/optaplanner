@@ -6,7 +6,7 @@
   <inheritedSolverBenchmark>
     <problemBenchmarks>
       <solutionFileIOClass>org.optaplanner.examples.flightcrewscheduling.persistence.FlightCrewSchedulingXlsxFileIO</solutionFileIOClass>
-      <inputSolutionFile>data/flightcrewscheduling/unsolved/2D-flights-poc.xlsx</inputSolutionFile>
+      <inputSolutionFile>data/flightcrewscheduling/unsolved/1W-flights-poc.xlsx</inputSolutionFile>
       <inputSolutionFile>data/flightcrewscheduling/unsolved/2W-flights-poc.xlsx</inputSolutionFile>
       <!--<problemStatisticType>BEST_SCORE</problemStatisticType>-->
       <!--<problemStatisticType>STEP_SCORE</problemStatisticType>-->
