@@ -121,7 +121,6 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
         // check the previous flight assignment and the following one,
         // if the connection among the two is not feasible by taxi try to fill the gap
         // woth a iata flight
-        cleanIataFlight(scoreDirector, flightAssignment);
 
         NavigableSet<FlightAssignment> flightAssignmentSet = flightAssignment.getEmployee()
                                                                              .getFlightAssignmentSet();
@@ -129,6 +128,8 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
         FlightAssignment prevFlightAssignment = flightAssignmentSet.lower(flightAssignment);
         FlightAssignment nextFlightAssignment = flightAssignmentSet.higher(flightAssignment);
 
+        cleanIataFlight(scoreDirector, flightAssignment);
+        cleanIataFlight(scoreDirector, prevFlightAssignment);
         fitIataFlight(scoreDirector, prevFlightAssignment, nextFlightAssignment);
     }
 
