@@ -40,6 +40,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -58,8 +59,12 @@ import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.optaplanner.core.api.score.Score;
 import org.optaplanner.core.api.score.constraint.ConstraintMatch;
 import org.optaplanner.core.api.score.constraint.ConstraintMatchTotal;
+import org.optaplanner.core.api.score.constraint.Indictment;
+import org.optaplanner.core.impl.domain.variable.descriptor.VariableDescriptor;
+import org.optaplanner.core.impl.score.director.ScoreDirector;
 import org.optaplanner.examples.common.persistence.AbstractXlsxSolutionFileIO;
 import org.optaplanner.examples.flightcrewscheduling.app.FlightCrewSchedulingApp;
 import org.optaplanner.examples.flightcrewscheduling.domain.Airport;
@@ -71,6 +76,8 @@ import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewParametriz
 import org.optaplanner.examples.flightcrewscheduling.domain.FlightCrewSolution;
 import org.optaplanner.examples.flightcrewscheduling.domain.IataFlight;
 import org.optaplanner.examples.flightcrewscheduling.domain.Skill;
+import org.optaplanner.examples.flightcrewscheduling.domain.solver.FlightAssignmentListener;
+import org.optaplanner.examples.flightcrewscheduling.domain.solver.MockDirector;
 import org.optaplanner.swing.impl.TangoColorFactory;
 
 public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<FlightCrewSolution> {
@@ -120,9 +127,14 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         private HashMap<String, String[]> qualificationAircraftTypeMap;
         private Map<String, FlightAssignment[]> employeeDateToFAInDoubt = new HashMap<>();
         private boolean readSolved;
+        private FlightAssignmentListener assignmentListener;
+        private ScoreDirector<FlightCrewSolution> mockSD;
         
         public FlightCrewSchedulingXlsxReader(XSSFWorkbook workbook) {
             super(workbook);
+
+            assignmentListener = new FlightAssignmentListener();
+            mockSD = new MockDirector<>();
         }
 
         public void setReadSolved(boolean readSolved) {
@@ -535,6 +547,8 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                                 duty.addFlightAssignment(flightAssignment);
                                 employee.setDutyByDate(dutyDate, duty);
                             }
+                            // call listener
+                            assignmentListener.afterVariableChanged(mockSD, flightAssignment);
                         }
                     } else {
                         // add flight assignments to the employeeDateToFAInDoubt
