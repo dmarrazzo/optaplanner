@@ -27,6 +27,7 @@ import org.optaplanner.core.api.domain.solution.PlanningSolution;
 import org.optaplanner.core.api.domain.solution.drools.ProblemFactCollectionProperty;
 import org.optaplanner.core.api.domain.solution.drools.ProblemFactProperty;
 import org.optaplanner.core.api.domain.valuerange.ValueRangeProvider;
+import org.optaplanner.core.api.score.buildin.hardmediumsoftlong.HardMediumSoftLongScore;
 import org.optaplanner.core.api.score.buildin.hardsoftlong.HardSoftLongScore;
 import org.optaplanner.examples.common.domain.AbstractPersistable;
 
@@ -58,7 +59,7 @@ public class FlightCrewSolution extends AbstractPersistable {
     private List<FlightAssignment> flightAssignmentList;
 
     @PlanningScore
-    private HardSoftLongScore score = null;
+    private HardMediumSoftLongScore score = null;
 
     public FlightCrewSolution() {
     }
@@ -158,11 +159,11 @@ public class FlightCrewSolution extends AbstractPersistable {
         this.flightAssignmentList = flightAssignmentList;
     }
 
-    public HardSoftLongScore getScore() {
+    public HardMediumSoftLongScore getScore() {
         return score;
     }
 
-    public void setScore(HardSoftLongScore score) {
+    public void setScore(HardMediumSoftLongScore score) {
         this.score = score;
     }
 

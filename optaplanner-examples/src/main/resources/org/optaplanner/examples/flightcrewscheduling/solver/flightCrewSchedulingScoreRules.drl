@@ -17,7 +17,7 @@
 package org.optaplanner.examples.flightcrewscheduling.solver;
 dialect "java"
 
-import org.optaplanner.core.api.score.buildin.hardsoftlong.HardSoftLongScoreHolder;
+import org.optaplanner.core.api.score.buildin.hardmediumsoftlong.HardMediumSoftLongScoreHolder
 
 import org.optaplanner.examples.flightcrewscheduling.domain.Airport;
 import org.optaplanner.examples.flightcrewscheduling.domain.Duty;
@@ -30,7 +30,7 @@ import org.optaplanner.examples.flightcrewscheduling.domain.Skill;
 import accumulate org.optaplanner.examples.common.solver.drools.functions.LoadBalanceByCountAccumulateFunction loadBalanceByCount;
 import accumulate org.optaplanner.examples.common.solver.drools.functions.LoadBalanceAccumulateFunction loadBalance;
 
-global HardSoftLongScoreHolder scoreHolder;
+global HardMediumSoftLongScoreHolder scoreHolder;
 
 // ############################################################################
 // Hard constraints
@@ -80,25 +80,29 @@ rule "Employee unavailability"
         scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
+// ############################################################################
+// Medium constraints
+// ############################################################################
+
 rule "Ground duties cannot accept Flight Duties"
 	when
 		Duty ( code == "GND", isFlightDuty() )
 	then
-        scoreHolder.addHardConstraintMatch(kcontext, -1);	
+        scoreHolder.addMediumConstraintMatch(kcontext, -1);	
 end
 
 rule "Standby duties cannot overlap Flight Duties"
 	when
 		Duty ( code != "GND", code != null , overlap > 0 )
 	then
-        scoreHolder.addHardConstraintMatch(kcontext, -1);	
+        scoreHolder.addMediumConstraintMatch(kcontext, -1);	
 end
 
 rule "Maximum daily FDP"
 	when
 		Duty ( isFlightDuty(), $over : overMaxFDP )
 	then
-        scoreHolder.addHardConstraintMatch(kcontext, -$over);
+        scoreHolder.addMediumConstraintMatch(kcontext, -$over);
 end
 
 rule "Respect Rest period"
@@ -106,14 +110,14 @@ rule "Respect Rest period"
 		$dutyAfter : Duty ( notEmpty(), $rightId : id )
 		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), $dutyAfter.isDayAfter(this), getRestLack($dutyAfter) > 0 )
 	then
-        scoreHolder.addHardConstraintMatch(kcontext, -1);	
+        scoreHolder.addMediumConstraintMatch(kcontext, -1);	
 end
 
 rule "Duty should finish at home base before day off or ground duty"
 	when
 		Duty ( dayAfterGroundOrHoliday, getClosingInconvenience() == 10 )
 	then
-		scoreHolder.addHardConstraintMatch(kcontext, 1);
+		scoreHolder.addMediumConstraintMatch(kcontext, 1);
 end
 
 // Maybe this is an over constrain
@@ -121,7 +125,7 @@ rule "Iata flight in not empty duty"
 	when
 		Duty ( iataFlight != null, notEmpty() )
 	then
-		scoreHolder.addHardConstraintMatch(kcontext, 1);
+		scoreHolder.addMediumConstraintMatch(kcontext, 1);
 end
 
 // ############################################################################
@@ -132,7 +136,7 @@ rule "Transfer between two flights"
     when
         Employee( $cs : connectionStatus, flightAssignmentSet != null, flightAssignmentSet!.size() > 0)
     then
-        scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, - $cs.taxiMinutes );
+        scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, 0, - $cs.taxiMinutes );
 end
 
 
