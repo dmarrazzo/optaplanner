@@ -116,7 +116,13 @@ public class Employee extends AbstractPersistable {
                 Airport previousAirport = previousAssignment.getFlight().getArrivalAirport();
                 Airport airport = assignment.getFlight().getDepartureAirport();
                 if (previousAirport != airport) {
+                    // Iata flights
+                    Duty iataFlightHoder = previousAssignment.getIataFlightHoder();
+                    if (iataFlightHoder != null)
+                        break;
+                    
                     Long taxiTimeInMinutes = previousAirport.getTaxiTimeInMinutesTo(airport);
+                    
                     if (taxiTimeInMinutes == null || taxiTimeInMinutes > MAX_TAXI_TIME)
                         healthCheck.invalidConnection++;
                     else

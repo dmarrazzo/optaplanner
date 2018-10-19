@@ -103,6 +103,7 @@ public class FlightAssignmentListener implements VariableListener<FlightAssignme
 
         // TODO A more sophisticated version should find the best option and if it can
         // fit in the current duty
+        // TODO: manage iata + taxi
 
         NavigableSet<FlightAssignment> flightAssignmentSet = flightAssignment.getEmployee()
                                                                              .getFlightAssignmentSet();
