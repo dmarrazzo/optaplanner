@@ -117,7 +117,7 @@ rule "Duty should finish at home base before day off or ground duty"
 	when
 		Duty ( dayAfterGroundOrHoliday, getClosingInconvenience() == 10 )
 	then
-		scoreHolder.addMediumConstraintMatch(kcontext, 1);
+		scoreHolder.addMediumConstraintMatch(kcontext, -1);
 end
 
 // Maybe this is an over constrain
@@ -125,8 +125,38 @@ rule "Iata flight in not empty duty"
 	when
 		Duty ( iataFlight != null, notEmpty() )
 	then
-		scoreHolder.addMediumConstraintMatch(kcontext, 1);
+		scoreHolder.addMediumConstraintMatch(kcontext, -1);
 end
+
+// TODO: This should be hard
+rule "Dayoff distance respect"
+    when
+        FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
+    then
+        scoreHolder.addMediumConstraintMatch(kcontext, -1);
+end
+
+// This should be hard but there are exception that are not managed by this constraint
+rule "Intraday flights admitted when the aircraft is the same - legs"
+	when
+        FlightAssignment(employee != null, $employee : employee, $flight: flight, $leftId : id)
+        FlightAssignment(employee != null, employee == $employee, 
+        	flight.departureUTCDate == $flight.departureUTCDate, 
+        	flight.aircraftRegistration != $flight.aircraftRegistration, id > $leftId )
+	then
+        scoreHolder.addMediumConstraintMatch(kcontext, -1);
+end
+
+// This should be hard but not sure of the business logic. It could be an overcontraint when not considering acclimatization
+rule "Avoid disruptive schedule - late arrival and no local night"
+	when
+		$d1 : Duty (lateArrival, $employee : employee)
+		$d2 : Duty (employee == $employee, isDayAfter($d1))
+		Duty (employee == $employee, isDayAfter($d2), getStartingInconvenience()<10, noLocalNight($d2))
+	then
+		scoreHolder.addMediumConstraintMatch(kcontext, -1);
+end
+
 
 // ############################################################################
 // Mixed constraints
@@ -144,35 +174,6 @@ end
 // Soft constraints
 // ############################################################################
 
-// TODO: This should be hard
-rule "Dayoff distance respect"
-    when
-        FlightAssignment(employee != null, employee.dayoffRespect(this)>0)
-    then
-        scoreHolder.addSoftConstraintMatch(kcontext, -10);
-end
-
-// This should be hard but there are exception that are not managed by this constraint
-rule "Intraday flights admitted when the aircraft is the same - legs"
-	when
-        FlightAssignment(employee != null, $employee : employee, $flight: flight, $leftId : id)
-        FlightAssignment(employee != null, employee == $employee, 
-        	flight.departureUTCDate == $flight.departureUTCDate, 
-        	flight.aircraftRegistration != $flight.aircraftRegistration, id > $leftId )
-	then
-        scoreHolder.addSoftConstraintMatch(kcontext, -1);
-end
-
-// This should be hard but not sure of the business logic. It could be an overcontraint when not considering acclimatization
-rule "Avoid disruptive schedule - late arrival and no local night"
-	when
-		$d1 : Duty (lateArrival, $employee : employee)
-		$d2 : Duty (employee == $employee, isDayAfter($d1))
-		Duty (employee == $employee, isDayAfter($d2), getStartingInconvenience()<10, noLocalNight($d2))
-	then
-		scoreHolder.addSoftConstraintMatch(kcontext, 100);
-end
-
 rule "Home Base Convenience"
 	when
 		Duty ( isFlightDuty(), $inconvenience : getHomeBaseInconvenience() )
@@ -184,7 +185,7 @@ rule "Minimize iata flight"
 	when
 		Duty ( iataFlight != null )
 	then
-		scoreHolder.addSoftConstraintMatch(kcontext, 10);
+		scoreHolder.addSoftConstraintMatch(kcontext, -1);
 end
 // Not sure of the following rule
 /*
