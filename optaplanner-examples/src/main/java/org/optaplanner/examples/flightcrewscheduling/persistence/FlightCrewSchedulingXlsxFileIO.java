@@ -77,6 +77,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
     private static final String DAY_OFF_MATCH = "OUV|UW|W|V|C";
     private static final String PRE_ASSIGNED_DUTY_MATCH = "GND|S1E|LSE|ESE";
+    private static final String FLIGHT_DUTY_MATCH = "TB\\d+|OR\\d+|SS\\d+|X3\\d+";
     private static final String COMMA_SPLIT = ",\\s+|,";
 
     public static final DateTimeFormatter MILITARY_TIME_FORMATTER = DateTimeFormatter.ofPattern("HHmm", Locale.ENGLISH);
@@ -117,6 +118,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         private Map<String, FlightAssignment> mapFlightDateSkillToFlightAssignment;
         private Map<String, String> mapEmployeeDateToDutyCode;
         private HashMap<String, String[]> qualificationAircraftTypeMap;
+        private Map<String, FlightAssignment[]> employeeDateToFAInDoubt = new HashMap<>();
         private boolean readSolved;
         
         public FlightCrewSchedulingXlsxReader(XSSFWorkbook workbook) {
@@ -160,14 +162,14 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
         private void readPreAssignedDutiesSheet() {
             while ( nextRow() ) {
                 String employeeName = nextStringCell().getStringCellValue();
-                String startDateString = nextStringCell().getStringCellValue();
-                String endDateString = nextStringCell().getStringCellValue();
+                String startDateTileString = nextStringCell().getStringCellValue();
+                String endDateTimeString = nextStringCell().getStringCellValue();
+                LocalDateTime dutyStart = LocalDateTime.parse(startDateTileString, DATE_TIME_FORMATTER);
                 double flyingHours = nextNumericCell().getNumericCellValue();
                 if(flyingHours == 0) {
-                    Employee employee = nameToEmployeeMap.get(employeeName);
-                    LocalDateTime dutyStart = LocalDateTime.parse(startDateString, DATE_TIME_FORMATTER);
-                    LocalDateTime dutyEnd = LocalDateTime.parse(endDateString, DATE_TIME_FORMATTER);
+                    LocalDateTime dutyEnd = LocalDateTime.parse(endDateTimeString, DATE_TIME_FORMATTER);
                     LocalDate dutyDate = dutyStart.toLocalDate();
+                    Employee employee = nameToEmployeeMap.get(employeeName);
                     Duty duty = employee.getDutyByDate(dutyDate);
                     
                     // TODO: new model to manage multiple activity for a duty
@@ -182,6 +184,30 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                         duty.setPreAssignedDutyEnd(dutyEnd);
                         employee.setDutyByDate(dutyDate, duty);
                     }                    
+                }
+                
+                // manage employeeDateToFAInDoubt
+                // +30 minutes approx, to manage duties that start at midnight
+                String dateStr = dutyStart.plusMinutes(30).format(DATE_FORMATTER);
+                FlightAssignment[] flightAssignments = employeeDateToFAInDoubt.get(employeeName+dateStr);
+                
+                if (flightAssignments != null) {
+                    Employee employee = nameToEmployeeMap.get(employeeName);
+                    // 40 minutes approx
+                    LocalDateTime dutyEnd = LocalDateTime.parse(endDateTimeString, DATE_TIME_FORMATTER).plusMinutes(40);
+
+                    LocalDateTime signInDateTime = flightAssignments[0].getFlight().getDepartureUTCDateTime();
+                    LocalDateTime signOffCDateTime = flightAssignments[0].getFlight().getArrivalUTCDateTime();
+                    
+                    // -30 minutes to manage duty delayed
+                    if (dutyStart.minusMinutes(30).isBefore(signInDateTime) && dutyEnd.isAfter(signOffCDateTime))
+                        flightAssignments[0].setEmployee(employee);
+
+                    signInDateTime = flightAssignments[1].getFlight().getDepartureUTCDateTime();
+                    signOffCDateTime = flightAssignments[1].getFlight().getArrivalUTCDateTime();
+
+                    if (dutyStart.isBefore(signInDateTime) && dutyEnd.isAfter(signOffCDateTime))
+                        flightAssignments[1].setEmployee(employee);
                 }
             }
         }
@@ -480,29 +506,42 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
 
             LocalDate dutyDate = LocalDate.parse(dutyDateStr, DATE_FORMATTER);
             
-            for (String dutyCode : dutyCodes) {
+            for (int i = 0; i < dutyCodes.length; i++) {
+                String dutyCode = dutyCodes[i];
                 if (dutyCode.matches(DAY_OFF_MATCH)) {
                     employee.getUnavailableDaySet().add(dutyDate);
                 } else if (dutyCode.matches(PRE_ASSIGNED_DUTY_MATCH)) {
                     // No new duty, add the code in map emp-date/dutyCode, it will be managed later by the preassigned duties
                     mapEmployeeDateToDutyCode.put(employeeName+"-"+dutyDate, dutyCode);
-                } else if (readSolved){
-                    FlightAssignment flightAssignment = mapFlightDateSkillToFlightAssignment.get(dutyCode+"@"+dutyDateStr+"#"+skill);
-
-                    if (flightAssignment != null) {
-                        flightAssignment.setEmployee(employee);
-
-                        Duty duty = employee.getDutyByDate(dutyDate);
-
-                        if (duty != null) {
-                            duty.addFlightAssignment(flightAssignment);
-                        } else {
-                            duty = new Duty();
-                            duty.setEmployee(employee);
-                            duty.setDate(dutyDate);
-                            duty.addFlightAssignment(flightAssignment);
-                            employee.setDutyByDate(dutyDate, duty);
+                } else if (readSolved && dutyCode.matches(FLIGHT_DUTY_MATCH)){
+                    // workaround for second flight
+                    String faId = dutyCode+"@"+dutyDateStr+"#"+skill;
+                    FlightAssignment flightAssignment = mapFlightDateSkillToFlightAssignment.get("2-"+faId);
+                    
+                    if (flightAssignment == null) {
+                        flightAssignment = mapFlightDateSkillToFlightAssignment.get(faId);
+                                        
+                        if (flightAssignment != null) {
+                            flightAssignment.setEmployee(employee);
+    
+                            Duty duty = employee.getDutyByDate(dutyDate);
+    
+                            if (duty != null) {
+                                duty.addFlightAssignment(flightAssignment);
+                            } else {
+                                duty = new Duty();
+                                duty.setEmployee(employee);
+                                duty.setDate(dutyDate);
+                                duty.addFlightAssignment(flightAssignment);
+                                employee.setDutyByDate(dutyDate, duty);
+                            }
                         }
+                    } else {
+                        // add flight assignments to the employeeDateToFAInDoubt
+                        FlightAssignment[] list = new FlightAssignment[2];
+                        list[0] = flightAssignment;
+                        list[1] = mapFlightDateSkillToFlightAssignment.get(faId);
+                        employeeDateToFAInDoubt.put(employeeName+dutyDateStr, list);
                     }
                 }
             }
@@ -587,7 +626,14 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     flightAssignment.setRequiredSkill(requiredSkill);
                     flightAssignmentList.add(flightAssignment);
                     //map used to pre-assign employee
-                    mapFlightDateSkillToFlightAssignment.put(flight.getFlightNumber()+"@"+DATE_FORMATTER.format(flight.getDepartureUTCDate())+"#"+skillNames[i], flightAssignment);                    
+
+                    //TODO: manage multiple fn in the same day - workaround for 2 flight with same id
+                    String faId = flight.getFlightNumber()+"@"+DATE_FORMATTER.format(flight.getDepartureUTCDate())+"#"+skillNames[i];
+                    FlightAssignment fa1 = mapFlightDateSkillToFlightAssignment.get(faId);
+                    if (fa1 != null)
+                        mapFlightDateSkillToFlightAssignment.put("2-"+faId, flightAssignment);
+                    else
+                        mapFlightDateSkillToFlightAssignment.put(faId, flightAssignment);
                 }
                 flightList.add(flight);
             }
