@@ -182,19 +182,25 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     LocalDateTime dutyEnd = LocalDateTime.parse(endDateTimeString, DATE_TIME_FORMATTER);
                     LocalDate dutyDate = dutyStart.toLocalDate();
                     Employee employee = nameToEmployeeMap.get(employeeName);
-                    Duty duty = employee.getDutyByDate(dutyDate);
-                    
                     // TODO: new model to manage multiple activity for a duty
+                    // Retrieve duty code from map emp-date/dutyCode (from employee list)
                     String dutyCode = mapEmployeeDateToDutyCode.get(employeeName+"-"+dutyDate);
-                    if (duty == null && dutyCode != null) {
-                        // Create a new duty. Retrieve duty code from map emp-date/dutyCode (from employee list)
-                        duty = new Duty();
+                                        
+                    if (dutyCode != null) {
+                        Duty duty = employee.getDutyByDate(dutyDate);
+                        
+                        // Create a new duty (duty should be always null here!)  
+                        if (duty==null) {
+                            duty = new Duty();
+                            duty.setEmployee(employee);
+                            employee.setDutyByDate(dutyDate, duty);
+                        }
+                        
+
                         duty.setCode(dutyCode);
                         duty.setDate(dutyDate);
-                        duty.setEmployee(employee);
                         duty.setPreAssignedDutyStart(dutyStart);
                         duty.setPreAssignedDutyEnd(dutyEnd);
-                        employee.setDutyByDate(dutyDate, duty);
                     }                    
                 }
                 
@@ -415,6 +421,9 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                 iataFlight.setDaysOfWeek(nextCell().getRawValue());
                 
                 departureAirport.addIataFlight(iataFlight);
+                
+                // add reachable by taxi
+                
             }
         }
 
