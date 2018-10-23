@@ -154,7 +154,18 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             readFlightListAndFlightAssignmentList();
             readEmployeeList();
             readPreAssignedDuties();
+            prepareSolved();
             return solution;
+        }
+
+        private void prepareSolved() {
+            if (readSolved == false)
+                return;
+            
+            solution.calculatePotentialDuties();
+            for (FlightAssignment flightAssignment : solution.getFlightAssignmentList()) {
+                assignmentListener.afterVariableChanged(mockSD, flightAssignment);
+            }
         }
 
         private void readPreAssignedDuties() {
