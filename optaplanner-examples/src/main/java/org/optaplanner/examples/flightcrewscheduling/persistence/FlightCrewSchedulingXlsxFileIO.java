@@ -230,13 +230,13 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                     
                     // -30 minutes to manage duty delayed
                     if (dutyStart.minusMinutes(30).isBefore(signInDateTime) && dutyEnd.isAfter(signOffCDateTime))
-                        flightAssignments[0].setEmployee(employee);
+                        assignFlightToEmployee(flightAssignments[0], employee);
 
                     signInDateTime = flightAssignments[1].getFlight().getDepartureUTCDateTime();
                     signOffCDateTime = flightAssignments[1].getFlight().getArrivalUTCDateTime();
 
                     if (dutyStart.isBefore(signInDateTime) && dutyEnd.isAfter(signOffCDateTime))
-                        flightAssignments[1].setEmployee(employee);
+                        assignFlightToEmployee(flightAssignments[1], employee);
                 }
             }
         }
@@ -554,7 +554,7 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                         flightAssignment = mapFlightDateSkillToFlightAssignment.get(faId);
                                         
                         if (flightAssignment != null) {
-                            flightAssignment.setEmployee(employee);
+                            assignFlightToEmployee(flightAssignment, employee);
     
                             Duty duty = employee.getDutyByDate(dutyDate);
     
@@ -567,8 +567,6 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
                                 duty.addFlightAssignment(flightAssignment);
                                 employee.setDutyByDate(dutyDate, duty);
                             }
-                            // call listener
-                            assignmentListener.afterVariableChanged(mockSD, flightAssignment);
                         }
                     } else {
                         // add flight assignments to the employeeDateToFAInDoubt
@@ -581,6 +579,12 @@ public class FlightCrewSchedulingXlsxFileIO extends AbstractXlsxSolutionFileIO<F
             }
 
             return newEmp;
+        }
+
+        private void assignFlightToEmployee(FlightAssignment flightAssignment, Employee employee) {
+            flightAssignment.setEmployee(employee);
+            // shadow variable
+            employee.getFlightAssignmentSet().add(flightAssignment);
         }
 
         private void readFlightListAndFlightAssignmentList() {
