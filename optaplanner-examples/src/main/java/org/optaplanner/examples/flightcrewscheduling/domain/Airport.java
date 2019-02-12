@@ -32,7 +32,8 @@ public class Airport extends AbstractPersistable {
 
     private Map<Airport, Long> taxiTimeInMinutesMap;
     private List<IataFlight> iataFlightList;
-
+    private Map<Airport, Long> taxiForIataInMinutesMap;
+    
     public Airport() {
     }
 
@@ -146,6 +147,14 @@ public class Airport extends AbstractPersistable {
 
     public void setIataFlightList(List<IataFlight> iataFlightList) {
         this.iataFlightList = iataFlightList;
+    }
+
+    public Map<Airport, Long> getTaxiForIataInMinutesMap() {
+        return taxiForIataInMinutesMap;
+    }
+
+    public void setTaxiForIataInMinutesMap(Map<Airport, Long> taxiForIataInMinutesMap) {
+        this.taxiForIataInMinutesMap = taxiForIataInMinutesMap;
     }
 
 }

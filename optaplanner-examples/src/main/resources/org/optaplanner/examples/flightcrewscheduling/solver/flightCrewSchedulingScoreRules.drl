@@ -40,7 +40,7 @@ rule "Required skill"
     when
         FlightAssignment(employee != null, !getEmployee().hasSkill(getRequiredSkill()))
     then
-        scoreHolder.addHardConstraintMatch(kcontext, -15);
+        scoreHolder.addHardConstraintMatch(kcontext, -20);
 end
 
 rule "Capitan aircraft type qualification"
@@ -80,23 +80,39 @@ rule "Employee unavailability"
         scoreHolder.addHardConstraintMatch(kcontext, -10);
 end
 
-// ############################################################################
-// Medium constraints
-// ############################################################################
-
 rule "Ground duties cannot accept Flight Duties"
 	when
 		Duty ( code == "GND", isFlightDuty() )
 	then
-        scoreHolder.addMediumConstraintMatch(kcontext, -1);	
+        scoreHolder.addHardConstraintMatch(kcontext, -10);	
 end
 
 rule "Standby duties cannot overlap Flight Duties"
 	when
 		Duty ( code != "GND", code != null , overlap > 0 )
 	then
-        scoreHolder.addMediumConstraintMatch(kcontext, -1);	
+        scoreHolder.addHardConstraintMatch(kcontext, -10);	
 end
+
+rule "Respect Rest period"
+	when
+		$dutyAfter : Duty ( notEmpty(), $rightId : id )
+		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), $dutyAfter.isDayAfter(this), getRestLack($dutyAfter) > 0 )
+	then
+        scoreHolder.addHardConstraintMatch(kcontext, -10);	
+end
+
+rule "Duty should finish at home base before day off or ground duty"
+	when
+		Duty ( dayAfterGroundOrHoliday, getClosingInconvenience() == 10 )
+	then
+		scoreHolder.addHardConstraintMatch(kcontext, -10);
+end
+
+// ############################################################################
+// Medium constraints
+// ############################################################################
+
 
 rule "Maximum daily FDP"
 	when
@@ -105,27 +121,13 @@ rule "Maximum daily FDP"
         scoreHolder.addMediumConstraintMatch(kcontext, -$over);
 end
 
-rule "Respect Rest period"
-	when
-		$dutyAfter : Duty ( notEmpty(), $rightId : id )
-		Duty ( employee == $dutyAfter.employee, id < $rightId, isFlightDuty(), $dutyAfter.isDayAfter(this), getRestLack($dutyAfter) > 0 )
-	then
-        scoreHolder.addMediumConstraintMatch(kcontext, -1);	
-end
-
-rule "Duty should finish at home base before day off or ground duty"
-	when
-		Duty ( dayAfterGroundOrHoliday, getClosingInconvenience() == 10 )
-	then
-		scoreHolder.addMediumConstraintMatch(kcontext, -1);
-end
 
 // Maybe this is an over constrain
 rule "Iata flight in not empty duty"
 	when
 		Duty ( iataFlight != null, notEmpty() )
 	then
-		scoreHolder.addMediumConstraintMatch(kcontext, -1);
+		scoreHolder.addMediumConstraintMatch(kcontext, -5);
 end
 
 // TODO: This should be hard
@@ -147,7 +149,9 @@ rule "Intraday flights admitted when the aircraft is the same - legs"
         scoreHolder.addMediumConstraintMatch(kcontext, -1);
 end
 
+// Not sure of the following rule
 // This should be hard but not sure of the business logic. It could be an overcontraint when not considering acclimatization
+/*
 rule "Avoid disruptive schedule - late arrival and no local night"
 	when
 		$d1 : Duty (lateArrival, $employee : employee)
@@ -156,7 +160,7 @@ rule "Avoid disruptive schedule - late arrival and no local night"
 	then
 		scoreHolder.addMediumConstraintMatch(kcontext, -1);
 end
-
+*/
 
 // ############################################################################
 // Mixed constraints
@@ -168,7 +172,6 @@ rule "Transfer between two flights"
     then
         scoreHolder.addMultiConstraintMatch(kcontext, - $cs.invalidConnection, 0, - $cs.taxiMinutes );
 end
-
 
 // ############################################################################
 // Soft constraints

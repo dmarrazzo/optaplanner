@@ -89,7 +89,7 @@ public class FlightCrewSequentialPillarSwapMoveIteratorFactory implements MoveIt
             }
             int fromAssignmentIndex = workingRandom.nextInt(assignmentList.size() - minimumSize + 1);
             int toAssignmentIndex = fromAssignmentIndex + minimumSize
-                    + workingRandom.nextInt(assignmentList.size() - fromAssignmentIndex - minimumSize + 1);
+                    + workingRandom.nextInt(assignmentList.size() - fromAssignmentIndex - minimumSize + 1)/2;
             return assignmentList.subList(fromAssignmentIndex, toAssignmentIndex);
         }
 

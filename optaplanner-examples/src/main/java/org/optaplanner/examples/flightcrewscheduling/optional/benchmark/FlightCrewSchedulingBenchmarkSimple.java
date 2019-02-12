@@ -18,17 +18,20 @@ package org.optaplanner.examples.flightcrewscheduling.optional.benchmark;
 
 import org.optaplanner.benchmark.api.PlannerBenchmark;
 import org.optaplanner.benchmark.api.PlannerBenchmarkFactory;
+import org.optaplanner.benchmark.impl.aggregator.swingui.BenchmarkAggregatorFrame;
 
 public class FlightCrewSchedulingBenchmarkSimple {
 
     public static void main(String[] args) {
         // Build the PlannerBenchmark
-        PlannerBenchmarkFactory plannerBenchmarkFactory = PlannerBenchmarkFactory.createFromXmlResource(
-                "org/optaplanner/examples/flightcrewscheduling/benchmark/flightCrewSchedulingBenchmarkConfig.xml");
+        PlannerBenchmarkFactory plannerBenchmarkFactory = PlannerBenchmarkFactory.createFromXmlResource("org/optaplanner/examples/flightcrewscheduling/benchmark/flightCrewSchedulingBenchmarkConfig.xml");
         PlannerBenchmark plannerBenchmark = plannerBenchmarkFactory.buildPlannerBenchmark();
 
         // Benchmark the problem and show it
-        plannerBenchmark.benchmarkAndShowReportInBrowser();
+        if (args.length == 0)
+            plannerBenchmark.benchmarkAndShowReportInBrowser();
+        else
+            BenchmarkAggregatorFrame.createAndDisplay(plannerBenchmarkFactory);
     }
 
 }
